@@ -1,5 +1,107 @@
-﻿################################################################################
-# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
-################################################################################
+# =========================
 
-/.vs
+# .NET / C#
+
+# =========================
+
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build results
+
+*.dll
+*.exe
+*.pdb
+*.cache
+*.log
+
+# =========================
+
+# Visual Studio / Rider / VS Code
+
+# =========================
+
+.vs/
+.vscode/
+.idea/
+
+# Rider
+
+*.sln.iml
+
+# =========================
+
+# OS files
+
+# =========================
+
+.DS_Store
+Thumbs.db
+
+# =========================
+
+# NuGet
+
+# =========================
+
+*.nupkg
+packages/
+
+# Keep packages.lock.json if you use it
+
+!packages.lock.json
+
+# =========================
+
+# Environment / Secrets
+
+# =========================
+
+appsettings.Development.json
+appsettings.Local.json
+.env
+
+# User secrets
+
+secrets.json
+
+# =========================
+
+# Logs
+
+# =========================
+
+logs/
+*.log
+
+# =========================
+
+# Node / React (if frontend later)
+
+# =========================
+
+node_modules/
+dist/
+build/
+
+# =========================
+
+# Test output
+
+# =========================
+
+TestResults/
+coverage/
+
+# =========================
+
+# Temporary files
+
+# =========================
+
+*.tmp
+*.temp

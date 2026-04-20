@@ -12,13 +12,13 @@ type Finding = {
   ministry: string;
   score: number;
 };
-
+ 
 type KPIProps = {
   title: string;
   value: string;
   sub: string;
 };
-const navigate = useNavigate();
+
 
 const getScoreClass = (score: number) => {
   if (score >= 80) return "score high";
@@ -98,6 +98,7 @@ function KPI({ title, value, sub }: KPIProps) {
 export default function App() {
   const [activeFilter, setActiveFilter] = useState("All types");
   const [chatInput, setChatInput] = useState("");
+  const navigate = useNavigate();
 
   const filteredFindings = filterFindingsByType(FINDINGS, activeFilter);
 

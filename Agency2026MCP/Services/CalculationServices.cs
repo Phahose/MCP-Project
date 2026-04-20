@@ -20,6 +20,7 @@ namespace Agency2026MCP.Services
                 {
                     continue; // No original contract, skip
                 }
+
                 response.OriginalContractNumber = original.ContractNumber;
                 response.OriginalVendorName = original.VendorName;
                 response.OriginalContractValue = original.Value;

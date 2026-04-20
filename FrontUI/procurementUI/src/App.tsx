@@ -1,5 +1,6 @@
 import "./App.css";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 type Finding = {
   id: string;
@@ -17,6 +18,7 @@ type KPIProps = {
   value: string;
   sub: string;
 };
+const navigate = useNavigate();
 
 const getScoreClass = (score: number) => {
   if (score >= 80) return "score high";
@@ -165,7 +167,7 @@ export default function App() {
             </thead>
             <tbody>
               {filteredFindings.map((f) => (
-                <tr key={f.id}>
+                <tr key={f.id} onClick={() => navigate(`/finding/${f.id}`)}>
                   <td>
                     <span className={`badge ${f.severity.toLowerCase()}`}>
                       {f.severity}
@@ -214,7 +216,7 @@ export default function App() {
             onKeyPress={(e) => e.key === "Enter" && handleChatSend()}
           />
         </div>
-        </div>
+        </div> 
       </div>
     </div>
   );

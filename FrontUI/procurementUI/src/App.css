@@ -245,3 +245,28 @@ td:nth-child(2) {
   border-bottom: gray 1px solid;
   margin-bottom: 1rem;
 }
+
+
+/* Details  */
+.detail-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.panel {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.bar {
+  height: 8px;
+  background: #eee;
+  border-radius: 4px;
+}
+
+.bar-fill {
+  height: 100%;
+  background: red;
+}

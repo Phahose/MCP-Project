@@ -1,0 +1,6 @@
+@Agency2026MCP_HostAddress = http://localhost:5264
+
+GET {{Agency2026MCP_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

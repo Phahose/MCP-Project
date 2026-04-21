@@ -15,12 +15,21 @@ namespace Agency2026MCP.Services
             {
                 AmendmentCreepResponse response = new AmendmentCreepResponse();
                 var original = group.FirstOrDefault(c => !c.IsAmendment);
-
+               
+                DateTime earlieststartDate = group.Where(c => c.StartDate.HasValue).Min(c => c.StartDate.Value);
+                DateTime latestStartDate = group.Where(c => c.StartDate.HasValue).Max(c => c.StartDate.Value);
+                int numberOfAmendments = group.Count(c => c.IsAmendment);
                 if (original == null)
                 {
                     continue; // No original contract, skip
                 }
 
+                response.ContractdurationInDays = earlieststartDate != default && latestStartDate != default
+                    ? (int)(latestStartDate - earlieststartDate).TotalDays
+                    : 0;
+                response.AmendmentIntensity = response.ContractdurationInDays > 0
+                    ? numberOfAmendments / (decimal)response.ContractdurationInDays
+                    : 0; 
                 response.OriginalContractNumber = original.ContractNumber;
                 response.OriginalVendorName = original.VendorName;
                 response.OriginalContractValue = original.Value;
@@ -47,9 +56,21 @@ namespace Agency2026MCP.Services
                     totalCreep += (maxAmendedValue - originalValue);
                 }
                 response.TotalAmendmentCreep = maxAmendedValue - originalValue;
-                response.CreepRatio = originalValue > 0 ? response.FinalContractValue / originalValue : 0;
                 response.TotalContractsAnalyzed = group.Count();
                 response.ContractsWithCreep = amendments.Where(a => a.Value > originalValue).ToList();
+
+                if (response.CreepRatio <= 2)
+                {
+                    response.Severity = "low";
+                }
+                else if (response.CreepRatio <= 5)
+                {
+                    response.Severity = "medium";
+                }
+                else
+                {
+                    response.Severity = "high";
+                }
                 amendmentCreepResponses.Add(response);
             }
 

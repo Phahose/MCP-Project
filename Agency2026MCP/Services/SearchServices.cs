@@ -11,6 +11,26 @@ namespace Agency2026MCP.Services
             _contracts = contracts;
         }
 
+        public List<string> ListDepartments()
+        {
+            return _contracts
+                .Where(c => !string.IsNullOrWhiteSpace(c.Department))
+                .Select(c => c.Department.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(d => d)
+                .ToList();
+        }
+
+        public List<string> ListVendors(string vendorNameContains)
+        {
+            return _contracts
+                .Where(c => !string.IsNullOrWhiteSpace(c.VendorName) && c.VendorName.Contains(vendorNameContains))
+                .Select(c => c.VendorName.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(v => v)
+                .ToList();
+        }
+
         public SearchContractsResponse Search(SearchContractsRequest request)
         {
             var response = new SearchContractsResponse { AppliedFilters = request };

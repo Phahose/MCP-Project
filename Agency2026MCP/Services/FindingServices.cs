@@ -30,7 +30,7 @@ namespace Agency2026MCP.Services
                         Type = "ThresholdSplit",
                         Severity = g.Severity,
                         Department = g.Department,
-                        VendorName = g.VendorName,
+                       // VendorName = g.VendorName,
                         ThresholdSplit = g
                     });
                 }

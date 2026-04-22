@@ -34,5 +34,23 @@ namespace Agency2026MCP.Controllers
             var splitResult = _calculationServices.CalculateThresholdSplit(searchContractResponse, proximityLimit, windowDays);
             return Ok(splitResult);
         }
+        [HttpGet("list_departments")]
+        public IActionResult ListDepartments()
+        {
+            var departments = _searchServices.ListDepartments();
+            return Ok(departments);
+        }
+        [HttpGet("list_vendors")]
+        public IActionResult ListVendors([FromQuery] string vendorNameContains)
+        {
+            var vendors = _searchServices.ListVendors(vendorNameContains);
+            return Ok(vendors);
+        }
+        [HttpPost("calculate_sole_source_risk")]
+        public IActionResult CalculateSoleSourceRisk([FromBody] SearchContractsResponse searchContractResponse)
+        {
+            var riskResult = _calculationServices.CalculateSoleSourceRisk(searchContractResponse);
+            return Ok(riskResult);
+        }
     }
 }

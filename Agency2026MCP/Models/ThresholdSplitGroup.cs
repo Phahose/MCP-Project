@@ -3,9 +3,10 @@
     public class ThresholdSplitGroup
     {
         public string Department { get; set; } = string.Empty;
-        public string VendorName { get; set; } = string.Empty;
+       // public string VendorName { get; set; } = string.Empty;
 
         public List<ThresholdSplitMember> GroupMembers { get; set; } = new();
+        public VendorDependency VendorDependency { get; set; } = new VendorDependency();
 
         // Derived these values for convenience, so the LLM doesn't have to do the math itself if it doesn't want to.
         public int ContractCount => GroupMembers.Count;

@@ -7,6 +7,7 @@
         public string BaseContractNumber { get; set; } = string.Empty;
         public string? AmendmentCode { get; set; }
         public bool IsAmendment => !string.IsNullOrWhiteSpace(AmendmentCode);
+        public bool isSoleSource { get; set; }
         // Justification
         public string? PermittedSituation { get; set; } // normalized to lowercase
       

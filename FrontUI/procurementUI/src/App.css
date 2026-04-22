@@ -1,25 +1,35 @@
 html, body, #root {
-  height: fit-content;
+  height: 100%;
+  margin: 0;
 }
 body {
- font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   background: #f4f5f7;
   padding: 0;
   margin: 0;
+  display: flex;
+  flex-direction: column;
 }
 
+#root {
+  height: inherit;
+}
+.App{
+  height: 100%;
+}
 .container {
   max-width: 100%;
   margin: auto;
-  height: 100%;
+  min-height: 100%;
+  height: fit-content;
   display: flex;
   flex-direction: column;
+  justify-content: center;
 }
 /* NAV */
 .nav {
   display: flex;
   align-items: center;
-  margin-bottom: 20px;
   padding: 1rem;
   background-color: white;
   font-size: 0.8rem;
@@ -46,6 +56,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  margin-top: 1rem;
   margin-left: auto;
   margin-right: auto;
   width: fit-content;
@@ -71,6 +82,91 @@ body {
 .kpi-sub {
   font-size: 12px;
   color: gray;
+}
+
+
+/* FULL CENTERING */
+.google-hero {
+  height: fit-content;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* TITLE */
+.google-title {
+  font-size: 40px;
+  font-weight: 500;
+  color: #202124;
+  margin-bottom: 30px;
+  letter-spacing: -0.5px;
+}
+
+/* INPUT WRAPPER */
+.google-input-wrapper {
+  width: 100%;
+  max-width: 600px;
+}
+
+/* INPUT */
+.google-input {
+  width: 100%;
+  padding: 14px 20px;
+  font-size: 16px;
+  border-radius: 999px;
+  border: 1px solid #dfe1e5;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+/* HOVER + FOCUS (Google feel) */
+.google-input:hover,
+.google-input:focus {
+  box-shadow: 0 1px 6px rgba(32, 33, 36, 0.28);
+  border-color: transparent;
+}
+
+/* SUGGESTIONS */
+.google-suggestions {
+  margin-top: 20px;
+  text-align: center;
+  color: #5f6368;
+  font-size: 14px;
+}
+
+.google-suggestions ul {
+  list-style: none;
+  padding: 0;
+  margin-top: 10px;
+}
+
+.google-suggestions li {
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+
+/* subtle hover */
+.google-suggestions li:hover {
+  text-decoration: underline;
+}
+
+
+/* INPUT */
+.intro-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+/* INPUT FOCUS */
+.intro-input:focus {
+  border-color: #111827;
+  box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.1);
 }
 
 /* BODY */
@@ -133,6 +229,7 @@ table {
   border-collapse: collapse;
   font-size: 0.8rem;
   padding: 5rem;
+  margin-bottom: 3rem;
 }
 
 thead {

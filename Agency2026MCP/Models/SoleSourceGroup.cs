@@ -4,16 +4,22 @@
     {
         // Context
         public string Department { get; set; } = string.Empty;
+        public string Vendor { get; set; } = string.Empty;
+        public Contract BaseContract { get; set; } = new();
+        public double TimeSpanDays { get; set; }
         // Timeline anchor
         // Evidence
-        public List<SoleSourceFinding> SoleSourceContracts { get; set; } = new();
+        public List<SoleSourceFinding> FollowOnContracts { get; set; } = new();
+        public List<Contract> SoleSourceContracts { get; set; } = new();
         // Aggregates
-        public decimal TotalSoleSourceValue => SoleSourceContracts.Sum(c => c.Contract.Value);
-        public int TotalSoleSoureceContracts => SoleSourceContracts.Count;
+        public decimal TotalSoleSourceValue => FollowOnContracts.Sum(c => c.Contract.Value);
+        public int FollowOnCount => FollowOnContracts.Count;
+        public int SoleSourceCount => SoleSourceContracts.Count;
         // Scoring
         public string Severity { get; set; } = string.Empty; // "low" | "medium" | "high"
-        public double AverageScore => SoleSourceContracts.Count > 0 ? SoleSourceContracts.Average(c => c.Score) : 0.0;
+        public double AverageScore { get; set; }
         // Human-readable summary
         public string Summary { get; set; } = string.Empty;
+
     }
 }

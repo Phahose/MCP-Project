@@ -234,7 +234,7 @@ namespace Agency2026MCP.Services
                         _ => "Low"
                     };
 
-                    groupResult.SoleSourceContracts.Add(new SoleSourceFinding
+                    groupResult.FollowOnContracts.Add(new SoleSourceFinding
                     {
                         Contract = contract,
                         PermittedSituationCode = code,
@@ -246,8 +246,8 @@ namespace Agency2026MCP.Services
                 }
 
                 // Optional: department-level summary
-                int averageGroupSevierity = groupResult.SoleSourceContracts.Any() 
-                    ? (int)groupResult.SoleSourceContracts.Average(c => c.PermittedSituationWeight) 
+                int averageGroupSevierity = groupResult.FollowOnContracts.Any() 
+                    ? (int)groupResult.FollowOnContracts.Average(c => c.PermittedSituationWeight) 
                     : 0;
                 string groupSevierity = averageGroupSevierity switch
                 {
@@ -256,7 +256,7 @@ namespace Agency2026MCP.Services
                     _ => "Low"
                 };
                 groupResult.Severity = groupSevierity;
-                groupResult.Summary = $"{groupResult.TotalSoleSoureceContracts} sole-source contracts. " + $"Average risk score: {groupResult.AverageScore:P}. total valuation at ${groupResult.TotalSoleSourceValue}";
+                groupResult.Summary = $"{groupResult.FollowOnCount} sole-source contracts. " + $"Average risk score: {groupResult.AverageScore:P}. total valuation at ${groupResult.TotalSoleSourceValue}";
 
                 response.SoleSourceGroups.Add(groupResult);
             }
@@ -264,97 +264,111 @@ namespace Agency2026MCP.Services
         }
 
 
-        //public SoleSourceResponse CalculateSoleSourceFollowOn(  SearchContractsResponse input, int windowDays = 365)
-        //{
-        //    var response = new SoleSourceResponse();
 
-        //    var validContracts = input.Contracts
-        //        .Where(c => c.StartDate.HasValue)
-        //        .ToList();
+        public SoleSourceResponse CalculateSoleSourceFollowOn(SearchContractsResponse input, int windowDays = 365)
+        {
+            var response = new SoleSourceResponse();
+            var soleSourceGroups = new List<SoleSourceGroup>();
+            var soleSourceFindings = new List<SoleSourceFinding>();
 
-        //    // Group by Department + Vendor
-        //    var groups = validContracts
-        //        .GroupBy(c => new { c.Department, c.VendorName });
+            //group by department
 
-        //    foreach (var group in groups)
-        //    {
-        //        var ordered = group
-        //            .OrderBy(c => c.StartDate!.Value)
-        //            .ToList();
+            var contractsbydept = input.Contracts.GroupBy(c => c.Department);
 
-        //        for (int i = 0; i < ordered.Count; i++)
-        //        {
-        //            var baseContract = ordered[i];
+            foreach(var deptgroup in contractsbydept)
+            {
+                var contractsbyVendor = deptgroup.GroupBy(c => c.VendorName);
 
-        //            // Only start from competitive contract
-        //            if (IsSoleSource(baseContract))
-        //                continue;
+                foreach (var vendor in contractsbyVendor)
+                {
+                    var orderedVendorContract = vendor.OrderBy(c => c.StartDate).ToList();
+                    Contract basecontract = null;
+                    foreach (var contract in orderedVendorContract)
+                    {
+                        //Find a base competitive contract (not sole source) that is followed by a sole source contract within the time window, and where the description of services is similar enough to suggest they are related.
+                        if (!IsSoleSource(contract))
+                        {
+                            basecontract = contract;
+                            break;
+                        }
 
-        //            var followOns = new List<SoleSourceFinding>();
+                    }
 
-        //            for (int j = i + 1; j < ordered.Count; j++)
-        //            {
-        //                var next = ordered[j];
+                    List<Contract> followoncontracts = new List<Contract>();
+                    followoncontracts = orderedVendorContract.Where(c =>  c.StartDate > basecontract.StartDate).ToList();
+                    List<Contract> soleSourceFollowOnContract = followoncontracts.Where(c => IsSoleSource(c) && CompareDescriptions(c.Services, basecontract.Services) >= 0.5).ToList();
 
-        //                // Stop if outside time window
-        //                var daysDiff = (next.StartDate!.Value - baseContract.StartDate!.Value).TotalDays;
-        //                if (daysDiff > windowDays)
-        //                    break;
+                    foreach (var followonContract in followoncontracts)
+                    {
 
-        //                if (!IsSoleSource(next))
-        //                    continue;
+                        var code = followonContract.PermittedSituation?.Trim().ToLower();
 
-        //                var code = next.PermittedSituation?.Trim().ToLower();
+                        if (string.IsNullOrWhiteSpace(code) || !PermittedSituations.Situations.TryGetValue(code, out var permitted))
+                        {
+                            response.Warnings.Add($"Contract {followonContract.ContractNumber} missing or invalid permitted situation.");
+                            continue;
+                        }
 
-        //                if (string.IsNullOrWhiteSpace(code) ||
-        //                    !PermittedSituations.Situations.TryGetValue(code, out var permitted))
-        //                {
-        //                    response.Warnings.Add(
-        //                        $"Contract {next.ContractNumber} missing or invalid permitted situation.");
-        //                    continue;
-        //                }
+                        int weight = permitted.Weight;
 
-        //                int weight = permitted.Weight;
-        //                double score = weight / 5.0;
+                        double score = weight / 5.0;
 
-        //                followOns.Add(new SoleSourceFinding
-        //                {
-        //                    Contract = next,
-        //                    PermittedSituationCode = code,
-        //                    PermittedSituationReason = permitted.Reason,
-        //                    PermittedSituationWeight = weight,
-        //                    Score = score
-        //                });
-        //            }
+                        string severity = weight switch
+                        {
+                            >= 4 => "High",
+                            3 => "Medium",
+                            _ => "Low"
+                        };
 
-        //            if (followOns.Any())
-        //            {
-        //                var finding = new SoleSourceGroup
-        //                {
-        //                    Department = group.Key.Department,
-        //                    VendorName = group.Key.VendorName,
-        //                    BaseContract = baseContract,
-        //                    FollowOnContracts = followOns,
-        //                    FollowOnCount = followOns.Count,
-        //                    AverageRiskScore = followOns.Average(f => f.Score),
-        //                    TimeSpanDays =(followOns.Last().Contract.StartDate!.Value - baseContract.StartDate!.Value).TotalDays
-        //                };
+                        SoleSourceFinding finding = new SoleSourceFinding
+                        {
+                            Contract = followonContract,
+                            PermittedSituationCode = code,
+                            PermittedSituationReason = permitted.Reason,
+                            PermittedSituationWeight = weight,
+                            Score = score,
+                            Severity = severity
+                        };
 
-        //                finding.Summary =
-        //                    $"{finding.VendorName} received {finding.FollowOnCount} sole-source follow-on contract(s) " +
-        //                    $"after a competitive award. Avg risk: {finding.AverageRiskScore:P}. " +
-        //                    $"Time span: {finding.TimeSpanDays} days.";
+                        soleSourceFindings.Add(finding);
+                    }
 
-        //                response.SoleSourceGroups.Add(finding);
-        //            }
-        //        }
-        //    }
+                    string groupSevierity = soleSourceFindings.Any() 
+                                            ? (int)soleSourceFindings.Average(c => c.PermittedSituationWeight) switch
+                                            {
+                                                >= 4 => "High",
+                                                3 => "Medium",
+                                                _ => "Low"
+                                            }
+                                            : "Low";
 
-        //    response.TotalContractsAnalyzed = input.Contracts.Count;
-        //    response.WindowDaysUsed = windowDays;
+                    SoleSourceGroup soleSourceGroup = new SoleSourceGroup
+                    {
+                        Department = deptgroup.Key,
+                        Vendor = vendor.Key,
+                        BaseContract = basecontract,
+                        FollowOnContracts = soleSourceFindings,
+                        SoleSourceContracts = soleSourceFollowOnContract,
+                        AverageScore = soleSourceFindings.Any() ? soleSourceFindings.Average(f => f.Score) : 0,
+                        TimeSpanDays = soleSourceFindings.Any() ? (soleSourceFindings.Last().Contract.StartDate!.Value - basecontract.StartDate!.Value).TotalDays : 0,
+                        Severity = groupSevierity,
+                    };
 
-        //    return response;
-        //}
+                    soleSourceGroups.Add(soleSourceGroup);
+                }
+
+                response = new SoleSourceResponse
+                {
+                    Department = deptgroup.Key,
+                    SoleSourceGroups = soleSourceGroups,
+                    TotalContractsAnalyzed = input.Contracts.Count,
+                    WindowDaysUsed = windowDays
+                };
+            }
+
+
+            return response;
+        }
 
         // This will eventually be replaced with a more robust method, potentially leveraging an external NLP service or library for better semantic understanding. For now, it uses a simple Jaccard similarity based on unique word overlap.
         private bool IsSoleSource(Contract contract)

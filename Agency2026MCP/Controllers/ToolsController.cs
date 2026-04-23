@@ -46,10 +46,10 @@ namespace Agency2026MCP.Controllers
             var vendors = _searchServices.ListVendors(vendorNameContains);
             return Ok(vendors);
         }
-        [HttpPost("calculate_sole_source_risk")]
-        public IActionResult CalculateSoleSourceRisk([FromBody] SearchContractsResponse searchContractResponse)
+        [HttpPost("calculate_sole_source_followon")]
+        public IActionResult CalculateSoleSourceFollowOn([FromBody] SearchContractsResponse searchContractResponse)
         {
-            var riskResult = _calculationServices.CalculateSoleSourceRisk(searchContractResponse);
+            var riskResult = _calculationServices.CalculateSoleSourceFollowOn(searchContractResponse);
             return Ok(riskResult);
         }
     }

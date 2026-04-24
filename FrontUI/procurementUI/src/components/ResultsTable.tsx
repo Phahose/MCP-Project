@@ -23,14 +23,9 @@ export function ResultsTable({ findings }: { findings: Finding[] }) {
     const [activeFilter, setActiveFilter] = useState("All types");
     const filteredFindings = filterFindingsByType(findings, activeFilter);
     //const navigate = useNavigate();
-    const [chatInput, setChatInput] = useState("");
 
-    const handleChatSend = () => {
-        if (chatInput.trim()) {
-        // Handle sending chat message
-        setChatInput("");
-        }
-    };
+
+
 
   return (
       <div className="body">

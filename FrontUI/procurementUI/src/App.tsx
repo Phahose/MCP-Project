@@ -1,8 +1,10 @@
+import { useState } from "react";
 import "./App.css";
 import {ResultsTable} from "./components/ResultsTable";
 
 import type { Finding } from "./types/Finding";
-
+import { callClaude } from "./ai/aiClient";
+import { tools } from "./ai/tools";
 
 type KPIProps = {
   title: string;
@@ -73,9 +75,23 @@ function KPI({ title, value, sub }: KPIProps) {
     </div>
   );
 }
+    
 
 export default function App() {
- 
+
+const [chatInput, setChatInput] = useState("");
+ const handleChatSend = () => {
+      if (chatInput.trim()) {
+        // Handle sending chat message
+        setChatInput("");
+        callClaude({messages: [{ role: "user", content: chatInput }], tools: tools})
+        .then(response => {
+          console.log("Claude response:", response);
+          
+        });
+
+      }
+    };
   return (
     <div className="App">
     {/* NAV */}
@@ -97,7 +113,7 @@ export default function App() {
         
         {/* KPI STRIP */}
         {
-          FINDINGS.length >= 5 ? (<div className="kpis">
+          FINDINGS.length >= 50 ? (<div className="kpis">
             <KPI title="Contracts analyzed" value="42,103" sub="across 18 ministries" />
             <KPI title="Total value under review" value="$2.81B" sub="2019–2026" />
             <KPI title="Findings" value="847" sub="34 high · 210 med · 603 low" />
@@ -114,6 +130,16 @@ export default function App() {
             <input
               className="google-input"
               placeholder="Well... anything about procurement data..."
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  // Handle search submission
+                  handleChatSend();
+                  console.log("Search submitted:", chatInput);
+                  setChatInput("");
+                }
+              }}  
             />
           </div>
 
@@ -127,7 +153,7 @@ export default function App() {
           </div>
         </div>
         {
-          FINDINGS.length >= 5 ? 
+          FINDINGS.length >= 50 ? 
             (<ResultsTable findings={FINDINGS} /> ) 
             : 
             null

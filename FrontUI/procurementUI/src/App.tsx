@@ -15,7 +15,7 @@ const FINDINGS: Finding[] = [
   {
     id: "1",
     severity: "high",
-    type: "Amendment creep",
+    type: "amendment_creep",
     subject: "Contract AB-2019-0847",
     vendor: "Northern Aurora Systems Inc.",
     ministry: "Health",
@@ -25,7 +25,7 @@ const FINDINGS: Finding[] = [
   {
     id: "2",
     severity: "high",
-    type: "Sole-source follow-on",
+    type: "sole_source",
     subject: "Vendor: BorealTech Consulting",
     vendor: "12 directed awards",
     ministry: "Service Alberta",
@@ -35,7 +35,7 @@ const FINDINGS: Finding[] = [
   {
     id: "3",
     severity: "medium",
-    type: "Threshold split",
+    type: "threshold_split",
     subject: "Cluster of 5 contracts",
     vendor: "Chinook Digital Services Ltd.",
     ministry: "Transportation",
@@ -45,7 +45,7 @@ const FINDINGS: Finding[] = [
   {
     id: "4",
     severity: "medium",
-    type: "Amendment creep",
+    type: "amendment_creep",
     subject: "Contract AB-2021-1133",
     vendor: "Rocky Mountain Analytics Ltd.",
     ministry: "Environment & Parks",
@@ -55,7 +55,7 @@ const FINDINGS: Finding[] = [
   {
     id: "5",
     severity: "low",
-    type: "Threshold split",
+    type: "threshold_split",
     subject: "Cluster of 3 contracts",
     vendor: "Prairie Supply Co-op",
     ministry: "Agriculture",

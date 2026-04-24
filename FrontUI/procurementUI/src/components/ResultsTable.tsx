@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+//import { useNavigate } from "react-router-dom";
 import type { Finding } from "../types/Finding";
+import { FindingDetails } from "../components/FindingComponent"
 
 
 const filterFindingsByType = (findings: Finding[], type: string) => {
@@ -16,11 +17,12 @@ const getScoreClass = (score: number) => {
   return "score low";
 };
 
+
 export function ResultsTable({ findings }: { findings: Finding[] }) {
 
     const [activeFilter, setActiveFilter] = useState("All types");
     const filteredFindings = filterFindingsByType(findings, activeFilter);
-    const navigate = useNavigate();
+    //const navigate = useNavigate();
     const [chatInput, setChatInput] = useState("");
 
     const handleChatSend = () => {
@@ -48,50 +50,46 @@ export function ResultsTable({ findings }: { findings: Finding[] }) {
                 </button>
               )
             )}
-          </div>
+          </div>     
+          <div className="findings-list">
+            {filteredFindings.map((f) => (
+              <details key={f.id} className="finding-item">
+                {/* SUMMARY (collapsed view) */}
+                <summary className="finding-summary">
+                  <span className={`badge ${f.severity.toLowerCase()}`}>
+                    {f.severity}
+                  </span>
 
-          {/* TABLE */}
-          <table>
-            <thead>
-              <tr>
-                <th>Severity</th>
-                <th>Type</th>
-                <th>Subject</th>
-                <th>Ministry</th>
-                <th>Score</th>
-                <th>Summary</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredFindings.map((f) => (
-                <tr key={f.id} onClick={() => navigate(`/finding/${f.id}`)}>
-                  <td>
-                    <span className={`badge ${f.severity.toLowerCase()}`}>
-                      {f.severity}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="type">{f.type}</span>
-                  </td>
-                  <td>
-                    {f.subject}
-                    <div className="sub">{f.vendor}</div>
-                  </td>
-                  <td>{f.ministry}</td>
-                  <td>
-                    <div className={getScoreClass(f.score)}>
-                      {f.score}
+                  <span className="type">{f.type}</span>
+
+                  <div className="finding-main">
+                    <div>
+                      {f.subject}
+                      <div className="sub">{f.vendor}</div>
                     </div>
-                  </td>
-                  <td>{f.summary}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+
+                  <div className={getScoreClass(f.score)}>
+                    {f.score}
+                  </div>
+                </summary>
+
+                {/* DETAILS (expanded view) */}
+                <div className="finding-expanded">
+                  <p>{f.summary}</p>
+
+                  <FindingDetails
+                    finding={f}
+                    findingType={f.type}
+                  />
+                </div>
+              </details>
+            ))}
+          </div>
         </div>
 
         {/* RIGHT CHAT */}
-        <div className="chat">
+        {/* <div className="chat">
           <div className="chat-title">● Ask the agent</div>
           <div className="chat-section">
             <div className="msg user">
@@ -113,7 +111,7 @@ export function ResultsTable({ findings }: { findings: Finding[] }) {
             onKeyPress={(e) => e.key === "Enter" && handleChatSend()}
           />
         </div>
-        </div> 
+        </div>  */}
       </div>
   );
 }

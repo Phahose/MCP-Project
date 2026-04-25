@@ -1,11 +1,22 @@
 import { callClaude } from "./aiClient";
 import { tools } from "./tools";
 
-const API_BASE = "https://localhost:5001"; // // C# web API endpoint
+const API_BASE = "https://localhost:5001";
 
-// Helper function to call tools
 async function callTool(name: string, args: any) {
   switch (name) {
+    case "list_departments":
+      return fetch(`${API_BASE}/list_departments`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" }
+      }).then(res => res.json());
+
+    case "list_vendors":
+      return fetch(`${API_BASE}/list_vendors?vendorNameContains=${encodeURIComponent(args.vendorNameContains)}`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" }
+      }).then(res => res.json());
+
     case "search_contracts":
       return fetch(`${API_BASE}/search_contracts`, {
         method: "POST",
@@ -39,65 +50,43 @@ async function callTool(name: string, args: any) {
   }
 }
 
-// Main agent loop
 export async function runAgent(userInput: string) {
   const messages: any[] = [
-    {
-      role: "user",
-      content: userInput
-    }
+    { role: "user", content: userInput }
   ];
 
-  // The agent will keep calling Claude until it produces a response that doesn't use any tools, which we treat as the final answer
   while (true) {
-    // Call Claude with the current conversation and available tools
-    const response = await callClaude({ messages, tools});
-
-    // The response content is an array of blocks, which may include text and/or tool calls
+    const response = await callClaude({ messages, tools });
     const content = response.content;
 
-    let toolUsed = false;
+    // Check if any tool calls exist in this response
+    const toolCalls = content.filter((block: any) => block.type === "tool_use");
 
-    // Check if the response includes any tool calls
-    for (const block of content) {
-
-      if (block.type === "tool_use") {
-        toolUsed = true;
-
-        const toolName = block.name;
-        const toolArgs = block.input;
-
-        console.log("Calling tool:", toolName, toolArgs);
-
-        // Call the appropriate tool function based on the tool name and get the result
-        const result = await callTool(toolName, toolArgs);
-
-        messages.push({
-          role: "assistant",
-          content: content
-        });
-
-        messages.push({
-          role: "user",
-          content: [
-            {
-              type: "tool_result",
-              tool_use_id: block.id,
-              content: JSON.stringify(result)
-            }
-          ]
-        });
-      }
-    }
-
-    // If no tools were used, we assume the response is the final answer and return it
-    if (!toolUsed) {
-      const finalText = content
+    if (toolCalls.length === 0) {
+      // No tool calls — this is the final answer
+      return content
         .filter((c: any) => c.type === "text")
         .map((c: any) => c.text)
         .join("\n");
-
-      return finalText;
     }
+
+    // Push assistant message ONCE outside the loop
+    messages.push({ role: "assistant", content });
+
+    // Process all tool calls and collect results
+    const toolResults = await Promise.all(
+      toolCalls.map(async (block: any) => {
+        console.log("Calling tool:", block.name, block.input);
+        const result = await callTool(block.name, block.input);
+        return {
+          type: "tool_result",
+          tool_use_id: block.id,
+          content: JSON.stringify(result)
+        };
+      })
+    );
+
+    // Push all tool results in one user message
+    messages.push({ role: "user", content: toolResults });
   }
 }

@@ -56,7 +56,7 @@ namespace Agency2026MCP.Services
                 {
                     totalCreep += (maxAmendedValue - originalValue);
                 }
-                response.TotalAmendmentCreep = maxAmendedValue - originalValue;
+                response.TotalAmendmentCreep = response.TotalAmendmentValue;
                 response.TotalContractsAnalyzed = group.Count();
                 response.ContractsWithCreep = amendments.Where(a => a.Value > originalValue).ToList();
 

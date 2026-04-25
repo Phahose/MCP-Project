@@ -3,8 +3,7 @@ import "./App.css";
 import {ResultsTable} from "./components/ResultsTable";
 
 import type { Finding } from "./types/Finding";
-import { callClaude } from "./ai/aiClient";
-import { tools } from "./ai/tools";
+import { runAgent } from "./ai/orchestrator";
 
 type KPIProps = {
   title: string;
@@ -80,18 +79,18 @@ function KPI({ title, value, sub }: KPIProps) {
 export default function App() {
 
 const [chatInput, setChatInput] = useState("");
- const handleChatSend = () => {
-      if (chatInput.trim()) {
-        // Handle sending chat message
-        setChatInput("");
-        callClaude({messages: [{ role: "user", content: chatInput }], tools: tools})
-        .then(response => {
-          console.log("Claude response:", response);
-          
-        });
+const [isLoading, setIsLoading] = useState(false);
 
-      }
-    };
+
+ const handleChatSend = async () => {
+  const input = chatInput.trim();
+    if (!input) return;
+    setChatInput("");
+    setIsLoading(true);
+    const response = await runAgent(input);
+    console.log("Final answer:", response);
+    setIsLoading(false);
+  };
   return (
     <div className="App">
     {/* NAV */}

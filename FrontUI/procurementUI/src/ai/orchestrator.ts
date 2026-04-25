@@ -45,6 +45,19 @@ async function callTool(name: string, args: any) {
         body: JSON.stringify(args)
       }).then(res => res.json());
 
+    case "list_departments":
+      return fetch(`{API_BASE}/list_departments`,{
+        method: "GET",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(args)
+      })
+    case "list_vendors":
+      return fetch(`${API_BASE}/list_vendors`,{
+        method: "GET",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(args)
+      })
+    
     default:
       throw new Error(`Unknown tool: ${name}`);
   }

@@ -152,7 +152,7 @@ const [isLoading, setIsLoading] = useState(false);
           </div>
         </div>
         {
-          FINDINGS.length >= 50 ? 
+          FINDINGS.length >= 5 ? 
             (<ResultsTable findings={FINDINGS} /> ) 
             : 
             null

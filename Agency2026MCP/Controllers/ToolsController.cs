@@ -52,5 +52,6 @@ namespace Agency2026MCP.Controllers
             var riskResult = _calculationServices.CalculateSoleSourceFollowOn(searchContractResponse);
             return Ok(riskResult);
         }
+
     }
 }

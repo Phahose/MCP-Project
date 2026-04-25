@@ -78,7 +78,7 @@ namespace Agency2026MCP.Services
             return amendmentCreepResponses;
         }
 
-        public ThresholdSplitResponse CalculateThresholdSplit(SearchContractsResponse input, double proximityLimit = 0.85, int windowDays = 90)
+        public ThresholdSplitResponse CalculateThresholdSplit(SearchContractsResponse input, double proximityLimit = 0.85, int windowDays = 120)
         {
             // 1. Keep only contracts sitting just below the applicable threshold.
             List<Contract> candidates = input.Contracts
@@ -123,6 +123,7 @@ namespace Agency2026MCP.Services
                 var spanDays = (ordered.Last().StartDate!.Value - ordered.First().StartDate!.Value).TotalDays;
                 if (spanDays > windowDays)
                 {
+                    // skipped because likely not related if they are outside the time window
                     continue;
                 }
                 
@@ -199,7 +200,6 @@ namespace Agency2026MCP.Services
             var soleSourceFindings = new List<SoleSourceFinding>();
 
             //group by department
-
             var contractsbydept = input.Contracts.GroupBy(c => c.Department);
 
             foreach(var deptgroup in contractsbydept)
@@ -210,6 +210,8 @@ namespace Agency2026MCP.Services
                 {
                     var orderedVendorContract = vendor.OrderBy(c => c.StartDate).ToList();
                     Contract basecontract = null;
+
+                    // Since data base is all sole source, we will use the first non-sole source contract as the base contract for comparison. In a more robust implementation, we might look for specific indicators or use NLP to determine the most likely base contract.
                     foreach (var contract in orderedVendorContract)
                     {
                         //Find a base competitive contract (not sole source) that is followed by a sole source contract within the time window, and where the description of services is similar enough to suggest they are related.

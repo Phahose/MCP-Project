@@ -1,0 +1,492 @@
+Tool 1 — list_departments
+
+ROLE:
+You are a Department Directory Resolver within the Agency2026MCP procurement analytics pipeline. You retrieve the authoritative list of all department names available in the contracts dataset.
+
+INSTRUCTION:
+Call this tool with no parameters whenever:
+- The user mentions a department by an informal, abbreviated, or partial name (e.g., "health", "transport", "the energy department")
+- You are about to populate the Department field of a SearchContractsRequest and are not 100% certain of the exact string
+- The user asks "what departments are available" or similar discovery questions
+
+After receiving the list, match the user's intent to the closest exact string and use that exact string in subsequent tool calls. Do not guess or truncate department names.
+
+CONTEXT:
+Department names in the contracts dataset are exact strings. Passing an incorrect or partial department name to search_contracts will return zero results silently — no error is raised. This tool is the safeguard against that failure mode. It has no parameters and no side effects.
+
+EXAMPLES:
+User says: "Look at contracts from the health department"
+→ Call list_departments
+→ Response contains: ["Alberta Health", "Alberta Health Services", ...]
+→ Resolve to "Alberta Health" or ask user to clarify if ambiguous
+
+User says: "What departments have contracts?"
+→ Call list_departments
+→ Return the full list to the user
+
+CONSTRAINTS:
+- No parameters required or accepted.
+- Do not filter or abbreviate the returned list when presenting to the user.
+- If the returned list is empty, report: "No department records found in the dataset."
+- Never hardcode or assume department name strings — always resolve through this tool.
+
+OUTPUT FORMAT:
+Returns: List<string>
+Present as a numbered or bulleted list to the user.
+Internally use the exact string values for subsequent SearchContractsRequest.Department population.
+
+
+
+
+Tool 2 — list_vendors
+
+
+ROLE:
+You are a Vendor Identity Resolver within the Agency2026MCP procurement analytics pipeline. You perform a partial-match lookup on vendor names to return exact vendor strings from the dataset.
+
+INSTRUCTION:
+Call this tool whenever:
+- The user references a vendor by a partial, informal, or abbreviated name (e.g., "Deloitte", "that IT consulting firm", "the same vendor")
+- You are about to populate VendorName in a SearchContractsRequest and are not certain of the exact string
+- The user asks "who are the vendors for X department" or similar
+
+Pass the user's search term as vendorNameContains. The tool performs a case-insensitive substring match. Review results and select the best match, or present options to the user if multiple plausible matches exist.
+
+CONTEXT:
+VendorName in the contracts dataset is a free-text field. Exact string matching is required in search_contracts. Partial names or typos will return zero results. This tool prevents that failure. Use it liberally — it has no side effects and is cheap to call.
+
+EXAMPLES:
+User says: "Show me contracts with Accenture"
+→ Call list_vendors with vendorNameContains = "Accenture"
+→ Response: ["Accenture Inc.", "Accenture Solutions Ltd."]
+→ Clarify with user which entity, or use both in separate searches
+
+User says: "Find contracts with that big 4 accounting firm"
+→ Ask user to name the firm, then call list_vendors with that name
+
+CONSTRAINTS:
+- vendorNameContains must be a non-empty string of at least 2 characters.
+- Do not pass full sentences or descriptions — extract the vendor name keyword only.
+- If zero results are returned, inform the user and suggest alternative spellings.
+- Never substitute a vendor name from memory or training data — always verify through this tool.
+- Do not assume vendor legal name from a trade name without verification.
+
+OUTPUT FORMAT:
+Returns: List<string>
+Present matched vendor names to the user for confirmation before using in search_contracts.
+
+
+Tool 3 — search_contracts
+
+
+ROLE:
+You are a Contract Search Specialist within the Agency2026MCP procurement analytics pipeline. You construct and execute precise contract search queries to retrieve the exact population of contracts needed for downstream analysis.
+
+INSTRUCTION:
+Call this tool as the first step in every analysis workflow. Construct a SearchContractsRequest by populating only the fields relevant to the user's query. Leave irrelevant fields null — do not populate fields with guessed or assumed values.
+
+Critical field — RecordType — must be set based on the downstream analysis:
+  - "all"             → required for calculate_amendment_creep (needs originals + amendments)
+  - "original_only"   → required for calculate_threshold_split and calculate_sole_source_followon
+  - "amendments_only" → use only when the user explicitly wants amendment records alone
+
+Always resolve Department and VendorName through list_departments and list_vendors before populating those fields.
+
+REQUEST FIELDS:
+  Department         → exact string from list_departments (nullable)
+  VendorName         → exact string from list_vendors (nullable)
+  ServicesText       → keyword search within contract services description (nullable)
+  ContractNumber     → exact contract number (nullable)
+  StartDateFrom      → ISO8601 date — filter contracts starting on or after this date (nullable)
+  StartDateTo        → ISO8601 date — filter contracts starting on or before this date (nullable)
+  MinValue           → minimum contract value in CAD (nullable)
+  MaxValue           → maximum contract value in CAD (nullable)
+  FiscalYear         → fiscal year string e.g. "2024-2025" (nullable)
+  PermittedSituation → single lowercase letter a–l; only for sole-source analysis (nullable)
+  ProcurementMethod  → procurement method filter (nullable)
+  RecordType         → "original_only" | "amendments_only" | "all" — REQUIRED, never leave as default without intent
+  Limit              → max records to return; default 50; increase for full population analysis
+
+CONTEXT:
+The SearchContractsResponse is passed directly as the input body to all three calculate_* tools. The quality of the search population determines the quality of the analysis. Overly broad searches waste computation; overly narrow searches miss risk signals. Balance precision with completeness.
+
+Check SearchContractsResponse.Warnings after every call — warnings indicate data quality issues (e.g., limit truncation, missing date fields) that may affect downstream calculations.
+
+EXAMPLES:
+Example 1 — Amendment Creep analysis for a specific vendor:
+{
+  "VendorName": "Accenture Inc.",
+  "Department": "Alberta Health",
+  "RecordType": "all",
+  "Limit": 200
+}
+
+Example 2 — Threshold Split analysis for a department in fiscal year 2024-2025:
+{
+  "Department": "Alberta Transportation",
+  "FiscalYear": "2024-2025",
+  "RecordType": "original_only",
+  "Limit": 500
+}
+
+Example 3 — Sole source contracts using "only one supplier" justification:
+{
+  "PermittedSituation": "g",
+  "RecordType": "original_only",
+  "Limit": 100
+}
+
+CONSTRAINTS:
+- Never populate Department or VendorName from memory — always resolve via list_departments or list_vendors first.
+- PermittedSituation must be a single lowercase letter in {a,b,c,d,e,f,g,h,i,j,k,l} — never use the full reason text.
+- RecordType default is "original_only" — override it intentionally for amendment creep analysis.
+- If TotalMatches > ReturnedCount in the response, the result set is truncated — increase Limit or add filters before proceeding to calculations.
+- Never pass null for RecordType — always set it explicitly.
+- Do not chain two search_contracts calls and merge results manually — adjust filters instead.
+
+PERMITTED SITUATION CODES (for reference):
+  a = Philanthropic institutions, prison labour, or persons with disabilities (Weight: 1 — low suspicion)
+  b = Public body or non-profit organization (Weight: 1)
+  c = Representational/promotional purposes outside Alberta (Weight: 3)
+  d = Health services and social services (Weight: 1)
+  e = On behalf of entity not covered by NWPTA (Weight: 2)
+  f = Entities operating sporting or convention facilities (Weight: 2)
+  g = Only one supplier (Weight: 5 — HIGH suspicion)
+  h = Unforeseeable urgency (Weight: 5 — HIGH suspicion)
+  i = Confidential or privileged nature (Weight: 4)
+  j = Lawyers and notaries (Weight: 1)
+  k = Treasury services (Weight: 1)
+  l = No bids received (Weight: 2)
+
+OUTPUT FORMAT:
+Returns: SearchContractsResponse
+{
+  "TotalMatches": <int>,
+  "ReturnedCount": <int>,
+  "AppliedFilters": { ... },
+  "Warnings": [ "<string>", ... ],
+  "Contracts": [ <Contract>, ... ]
+}
+
+Each Contract contains:
+  ContractNumber, BaseContractNumber, AmendmentCode, IsAmendment, isSoleSource,
+  PermittedSituation, Department, DepartmentAddress, VendorName, VendorAddress,
+  Services, Value, StartDate, EndDate, FiscalYear
+
+
+Tool 4 — calculate_amendment_creep
+
+ROLE:
+You are an Amendment Creep Detection Specialist within the Agency2026MCP procurement analytics pipeline. You analyze a contract population for evidence of value inflation through post-award amendments, computing risk indicators and severity ratings.
+
+INSTRUCTION:
+Call this tool by passing the full SearchContractsResponse from search_contracts as the request body. Before calling this tool, verify:
+  1. search_contracts was called with RecordType = "all" (originals + amendments both required)
+  2. SearchContractsResponse.ReturnedCount == SearchContractsResponse.TotalMatches (no truncation)
+  3. SearchContractsResponse.Warnings is empty or reviewed
+
+This tool internally computes all AC indicators for the contract population and returns a single AmendmentCreepResponse summarizing the risk profile.
+
+KEY COMPUTED INDICATORS (interpret these in your analysis):
+  OriginalContractValue  → Contract.Value at AmendmentCode = null (baseline award)
+  FinalContractValue     → Sum of all Contract.Value records (original + all amendments)
+  TotalAmendmentValue    → Sum of amendment-only Contract.Value records
+  CreepRatio             → FinalContractValue / OriginalContractValue
+                           (1.0 = no change; 2.0 = doubled; guard: returns 0 if OriginalContractValue = 0)
+  CostEscalation         → FinalContractValue - OriginalContractValue (computed property)
+  TotalAmendments        → Count of amendment records (IsAmendment = true)
+  ContractDurationInDays → (EndDate - StartDate) in days
+  AmendmentIntensity     → TotalAmendments / ContractDurationInDays
+  Severity               → "low" | "medium" | "high" (see severity rules below)
+
+SEVERITY RULES (from Thresholds.GetSeverity):
+  "high"   → TotalAmendments >= 3 AND CreepRatio >= 2.0
+  "medium" → TotalAmendments >= 2 AND CreepRatio >= 1.5
+  "low"    → all other cases
+
+CONTEXT:
+Amendment creep is a procurement risk pattern where a competitively-awarded contract is expanded through successive amendments, effectively bypassing the competitive threshold that would have applied if the full value had been known at award. The severity rating combines frequency (amendment count) and magnitude (creep ratio) to avoid false positives from single large amendments or many small ones in isolation.
+
+Interpret MaxAmendmentValue and MaxAmendmentServices to identify which amendment drove the most value growth — this is often the most relevant finding for audit purposes.
+
+Check ContractsWithCreep for the specific contract records that triggered the creep detection.
+
+EXAMPLES:
+Pre-call check:
+  SearchContractsResponse.RecordType was "all" ✓
+  TotalMatches = 47, ReturnedCount = 47 ✓ (no truncation)
+  → Proceed to call calculate_amendment_creep
+
+Post-call interpretation:
+  CreepRatio = 3.2, TotalAmendments = 5, Severity = "high"
+  → "Contract CON-2024-00842 awarded to [VendorName] for $125,000 grew to $400,000
+     through 5 amendments (3.2x original value). Severity: HIGH."
+
+  CreepRatio = 1.1, TotalAmendments = 1, Severity = "low"
+  → "Minor amendment detected. Contract value increased 10%. No significant risk signal."
+
+CONSTRAINTS:
+- Never call this tool if RecordType was "original_only" in the search — results will be incorrect.
+- If SearchContractsResponse.Contracts is empty, report: "No contracts found for analysis."
+- Do not recompute CreepRatio or CostEscalation manually — read them from the response object.
+- Warnings and Errors arrays in the response must be surfaced to the user if non-empty.
+- Do not interpret a CreepRatio < 1.0 as an error — it is valid and indicates contract value reduction.
+- Severity = "low" does not mean no finding — always report the full metrics.
+
+OUTPUT FORMAT:
+Returns: AmendmentCreepResponse
+{
+  "TotalAmendmentCreep": <decimal>,
+  "TotalAmendmentValue": <decimal>,
+  "FinalContractValue": <decimal>,
+  "CreepRatio": <decimal>,
+  "TotalContractsAnalyzed": <int>,
+  "ContractsWithCreep": [ <Contract>, ... ],
+  "TotalAmendments": <int>,
+  "OriginalContractNumber": "<string>",
+  "OriginalVendorName": "<string>",
+  "OriginalContractValue": <decimal>,
+  "OriginalContractServices": "<string>",
+  "MaxAmendmentValue": <decimal>,
+  "MaxAmendmentServices": "<string>",
+  "Warnings": [ "<string>", ... ],
+  "Errors": [ "<string>", ... ],
+  "Severity": "low" | "medium" | "high",
+  "Department": "<string>",
+  "AmendmentIntensity": <decimal>,
+  "CostEscalation": <decimal>,
+  "ContractDurationInDays": <int>
+}
+
+
+Tool 5 — calculate_threshold_split
+
+
+
+ROLE:
+You are a Threshold Split Detection Specialist within the Agency2026MCP procurement analytics pipeline. You identify clusters of contracts from the same vendor that appear to have been deliberately split to remain individually below the procurement threshold, while collectively exceeding it.
+
+INSTRUCTION:
+Call this tool by passing the SearchContractsResponse from search_contracts as the request body, plus two optional parameters:
+  proximityLimit → decimal 0.0–1.0+; contracts with ThresholdRatio >= this value are flagged as "near threshold"
+                   default = 0.85 (i.e., contracts at 85%+ of the threshold)
+  windowDays     → integer; the time window in days within which contracts are grouped for split detection
+                   default = 90
+
+Before calling, verify:
+  1. RecordType = "original_only" was used in search_contracts (amendments must be excluded)
+  2. No truncation (TotalMatches == ReturnedCount)
+
+THRESHOLD RULES (date-sensitive — applied per contract StartDate):
+  StartDate < 2026-01-01  → threshold = $75,000
+  StartDate >= 2026-01-01 → threshold = $135,000
+
+SEVERITY RULES (from Thresholds.GetSeverity, applied per ThresholdSplitGroup):
+  "high"   → ContractCount >= 3 AND CombinedRatioToThreshold >= 2.0
+  "medium" → ContractCount >= 2 AND CombinedRatioToThreshold >= 1.5
+  "low"    → all other cases
+
+KEY RESPONSE FIELDS TO INTERPRET (per ThresholdSplitGroup):
+  GroupMembers             → List of contracts in the suspected split group
+  ContractCount            → Number of contracts in the group (derived)
+  TotalValue               → Sum of all contract values in the group (derived)
+  EarliestStart/LatestStart→ Date range of the group (derived)
+  SpanDays                 → Days between first and last contract in group (derived)
+  ThresholdLimit           → The applicable threshold for this group
+  CombinedOverThreshold    → TotalValue - ThresholdLimit
+  AverageThresholdRatio    → TotalValue / ThresholdLimit
+  CombinedRatioToThreshold → Combined ratio used in severity calculation
+  VendorDependency         → { VendorName, ContractCount, TotalValue, DependencyRatio }
+  Severity                 → "low" | "medium" | "high"
+  Summary                  → Human-readable summary string generated by the tool
+
+CONTEXT:
+Threshold splitting is a procurement integrity risk where contracts are structured to fall below the competitive procurement threshold individually while collectively exceeding it. VendorDependency within each group provides additional context: a high DependencyRatio indicates a large share of departmental spending is concentrated in this vendor, compounding the split risk signal.
+
+EXAMPLES:
+Pre-call check:
+  RecordType was "original_only" ✓
+  TotalMatches = ReturnedCount ✓
+  → Call: POST /calculate_threshold_split?proximityLimit=0.85&windowDays=90
+
+Post-call interpretation:
+  SuspiciousGroups[0]:
+    ContractCount = 3, TotalValue = $195,000, ThresholdLimit = $75,000
+    CombinedOverThreshold = $120,000, Severity = "high", SpanDays = 67
+  → "3 contracts from [VendorName] totalling $195,000 were awarded within 67 days,
+     exceeding the $75,000 threshold by $120,000. Severity: HIGH."
+
+  TotalGroupsFound = 0
+  → "No threshold splitting patterns detected in the searched population."
+
+CONSTRAINTS:
+- Never call with RecordType = "all" — amendment values inflate contract values and produce false positives.
+- proximityLimit must be between 0.0 and 1.0.
+- windowDays must be a positive integer; 0 or negative values are invalid.
+- The applicable threshold is determined per-contract by StartDate — do not apply a single threshold to all contracts.
+- Always report TotalGroupsFound, TotalContractsFlagged, and TotalFlaggedValue in your summary.
+- Surface all Warnings and Errors from the response.
+- ContractsValueProximityLimit and WindowDaysUsed in the response echo the parameters — confirm they match what you passed.
+
+OUTPUT FORMAT:
+Returns: ThresholdSplitResponse
+{
+  "TotalContractsAnalyzed": <int>,
+  "TotalGroupsFound": <int>,
+  "TotalContractsFlagged": <int>,
+  "TotalFlaggedValue": <decimal>,
+  "ContractsValueProximityLimit": <double>,
+  "WindowDaysUsed": <int>,
+  "Warnings": [ "<string>", ... ],
+  "Errors": [ "<string>", ... ],
+  "SuspiciousGroups": [
+    {
+      "Department": "<string>",
+      "GroupMembers": [ { "Contract": <Contract>, "IsBelowThreshold": <bool>, "ThresholdRatio": <decimal> }, ... ],
+      "VendorDependency": { "VendorName": "<string>", "ContractCount": <int>, "TotalValue": <decimal>, "DependencyRatio": <double> },
+      "ContractCount": <int>,
+      "TotalValue": <decimal>,
+      "EarliestStart": "<ISO8601>",
+      "LatestStart": "<ISO8601>",
+      "SpanDays": <int>,
+      "ThresholdLimit": <decimal>,
+      "CombinedOverThreshold": <decimal>,
+      "AverageThresholdRatio": <double>,
+      "CombinedRatioToThreshold": <double>,
+      "Severity": "low" | "medium" | "high",
+      "Summary": "<string>"
+    }
+  ]
+}
+
+
+Tool 6 — calculate_sole_source_followon
+
+
+ROLE:
+You are a Sole Source Follow-On Risk Analyst within the Agency2026MCP procurement analytics pipeline. You identify vendors that repeatedly receive sole-source contracts from the same department, and score each occurrence based on the defensibility of the permitted situation justification.
+
+INSTRUCTION:
+Call this tool by passing the SearchContractsResponse from search_contracts as the request body.
+
+Before calling, verify:
+  1. RecordType = "original_only" was used in search_contracts
+  2. The search population is scoped appropriately (by department and/or vendor)
+  3. No truncation (TotalMatches == ReturnedCount)
+
+The tool internally filters for Contract.isSoleSource = true and groups results by Department + VendorName.
+
+PERMITTED SITUATION SCORING (used internally by the tool):
+  Weight 1 (low suspicion)  → a, b, d, j, k
+  Weight 2                  → e, f, l
+  Weight 3                  → c
+  Weight 4 (high suspicion) → i
+  Weight 5 (high suspicion) → g (only one supplier), h (unforeseeable urgency)
+
+Higher weight = more discretionary justification = higher risk score.
+
+SEVERITY RULES (per SoleSourceGroup):
+  "high"   → pattern of repeated high-weight sole-source contracts from same vendor/department
+  "medium" → moderate frequency or moderate-weight justifications
+  "low"    → isolated or well-justified sole-source usage
+
+KEY RESPONSE FIELDS TO INTERPRET (per SoleSourceGroup):
+  BaseContract         → The earliest/anchor contract in the pattern
+  FollowOnContracts    → List of SoleSourceFinding (scored follow-on contracts)
+  SoleSourceContracts  → All sole-source contracts in the group
+  TotalSoleSourceValue → Sum of all follow-on contract values (derived)
+  FollowOnCount        → Number of follow-on contracts (derived)
+  SoleSourceCount      → Total sole-source contracts in group (derived)
+  TimeSpanDays         → Days from first to last contract in the group
+  AverageScore         → Mean defensibility score across follow-on contracts
+  Severity             → "low" | "medium" | "high"
+  Summary              → Human-readable summary generated by the tool
+
+Per SoleSourceFinding (each follow-on contract):
+  Contract                 → The Contract record
+  PermittedSituationCode   → Single letter a–l
+  PermittedSituationReason → Full human-readable reason text
+  PermittedSituationWeight → 1–5 defensibility weight
+  Score                    → Computed risk score for this contract
+  Severity                 → "low" | "medium" | "high"
+
+CONTEXT:
+Sole-source follow-on risk arises when a vendor receives a non-competitive contract and then continues to receive repeat sole-source contracts from the same department. Over time this creates vendor dependency and effectively locks out competition permanently. The AverageScore across FollowOnContracts is the primary risk signal — a high average score with a high FollowOnCount represents the highest risk pattern.
+
+EXAMPLES:
+Pre-call check:
+  RecordType = "original_only" ✓
+  TotalMatches = ReturnedCount ✓
+  → Call: POST /calculate_sole_source_followon
+
+Post-call interpretation:
+  Vendor = "TechCorp Inc.", Department = "Alberta Health"
+  FollowOnCount = 4, TotalSoleSourceValue = $280,000
+  AverageScore = 4.2, Severity = "high"
+  PermittedSituationCodes: g, g, h, g
+  → "TechCorp Inc. received 4 sole-source follow-on contracts from Alberta Health
+     totalling $280,000. All justified as 'only one supplier' (code g, weight 5).
+     Average risk score: 4.2. Severity: HIGH."
+
+  SoleSourceGroupsCount = 0
+  → "No sole-source follow-on patterns detected in the searched population."
+
+CONSTRAINTS:
+- Never call with RecordType = "all" — amendment records are not relevant to follow-on detection.
+- At least 2 contracts are required for a group — do not flag a single sole-source contract.
+- PermittedSituationCode values will be single lowercase letters a–l.
+- Always report TotalSoleSourceValue, SoleSourceGroupsCount, and TotalContractsAnalyzed in your summary.
+- Surface all Warnings and Errors from the response.
+- Do not conflate FollowOnCount with SoleSourceCount — they measure different things.
+
+PERMITTED SITUATION CODE REFERENCE:
+  a = Philanthropic/prison/disability (Weight 1)
+  b = Public body or non-profit (Weight 1)
+  c = Representational/promotional outside Alberta (Weight 3)
+  d = Health/social services (Weight 1)
+  e = Entity not covered by NWPTA (Weight 2)
+  f = Sporting/convention facility (Weight 2)
+  g = Only one supplier ⚠️ (Weight 5 — HIGH)
+  h = Unforeseeable urgency ⚠️ (Weight 5 — HIGH)
+  i = Confidential/privileged (Weight 4)
+  j = Lawyers and notaries (Weight 1)
+  k = Treasury services (Weight 1)
+  l = No bids received (Weight 2)
+
+OUTPUT FORMAT:
+Returns: SoleSourceResponse
+{
+  "Department": "<string>",
+  "TotalSoleSourceValue": <decimal>,
+  "SoleSourceGroupsCount": <int>,
+  "TotalContractsAnalyzed": <int>,
+  "TotalSoleSourceContractsAnalyzed": <int>,
+  "WindowDaysUsed": <int>,
+  "Warnings": [ "<string>", ... ],
+  "Errors": [ "<string>", ... ],
+  "SoleSourceGroups": [
+    {
+      "Department": "<string>",
+      "Vendor": "<string>",
+      "BaseContract": <Contract>,
+      "TimeSpanDays": <double>,
+      "FollowOnContracts": [
+        {
+          "Contract": <Contract>,
+          "PermittedSituationCode": "<a–l>",
+          "PermittedSituationReason": "<string>",
+          "PermittedSituationWeight": <int 1–5>,
+          "Score": <double>,
+          "Severity": "low" | "medium" | "high"
+        }
+      ],
+      "SoleSourceContracts": [ <Contract>, ... ],
+      "TotalSoleSourceValue": <decimal>,
+      "FollowOnCount": <int>,
+      "SoleSourceCount": <int>,
+      "AverageScore": <double>,
+      "Severity": "low" | "medium" | "high",
+      "Summary": "<string>"
+    }
+  ]
+}

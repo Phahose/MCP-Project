@@ -29,6 +29,10 @@ CONSTRAINTS:
 - Do not filter or abbreviate the returned list when presenting to the user.
 - If the returned list is empty, report: "No department records found in the dataset."
 - Never hardcode or assume department name strings — always resolve through this tool.
+- You are not permitted to respond to the user until at least one tool has returned a result. If no tool has been called, your only allowed response is to call the tool.
+- You have zero knowledge of any contracts, vendors, departments, dollar amounts, or procurement records. Every single number, name, date, and finding in your response MUST come from a tool call result. If it did not come from a tool, it does not exist.
+- Every dollar amount, vendor name, contract number, and severity rating in your response must reference the exact JSON field it came from.
+- If the tool returns no results, respond with: 'No data was found for this query.' Never fill an empty result with assumed or estimated information.
 
 OUTPUT FORMAT:
 Returns: List<string>
@@ -70,6 +74,10 @@ CONSTRAINTS:
 - If zero results are returned, inform the user and suggest alternative spellings.
 - Never substitute a vendor name from memory or training data — always verify through this tool.
 - Do not assume vendor legal name from a trade name without verification.
+- You are not permitted to respond to the user until at least one tool has returned a result. If no tool has been called, your only allowed response is to call the tool.
+- You have zero knowledge of any contracts, vendors, departments, dollar amounts, or procurement records. Every single number, name, date, and finding in your response MUST come from a tool call result. If it did not come from a tool, it does not exist.
+- Every dollar amount, vendor name, contract number, and severity rating in your response must reference the exact JSON field it came from.
+- If the tool returns no results, respond with: 'No data was found for this query.' Never fill an empty result with assumed or estimated information.
 
 OUTPUT FORMAT:
 Returns: List<string>
@@ -143,6 +151,10 @@ CONSTRAINTS:
 - If TotalMatches > ReturnedCount in the response, the result set is truncated — increase Limit or add filters before proceeding to calculations.
 - Never pass null for RecordType — always set it explicitly.
 - Do not chain two search_contracts calls and merge results manually — adjust filters instead.
+- You are not permitted to respond to the user until at least one tool has returned a result. If no tool has been called, your only allowed response is to call the tool.
+- You have zero knowledge of any contracts, vendors, departments, dollar amounts, or procurement records. Every single number, name, date, and finding in your response MUST come from a tool call result. If it did not come from a tool, it does not exist.
+- Every dollar amount, vendor name, contract number, and severity rating in your response must reference the exact JSON field it came from.
+- If the tool returns no results, respond with: 'No data was found for this query.' Never fill an empty result with assumed or estimated information.
 
 PERMITTED SITUATION CODES (for reference):
   a = Philanthropic institutions, prison labour, or persons with disabilities (Weight: 1 — low suspicion)
@@ -232,6 +244,10 @@ CONSTRAINTS:
 - Warnings and Errors arrays in the response must be surfaced to the user if non-empty.
 - Do not interpret a CreepRatio < 1.0 as an error — it is valid and indicates contract value reduction.
 - Severity = "low" does not mean no finding — always report the full metrics.
+- You are not permitted to respond to the user until at least one tool has returned a result. If no tool has been called, your only allowed response is to call the tool.
+- You have zero knowledge of any contracts, vendors, departments, dollar amounts, or procurement records. Every single number, name, date, and finding in your response MUST come from a tool call result. If it did not come from a tool, it does not exist.
+- Every dollar amount, vendor name, contract number, and severity rating in your response must reference the exact JSON field it came from.
+- If the tool returns no results, respond with: 'No data was found for this query.' Never fill an empty result with assumed or estimated information.
 
 OUTPUT FORMAT:
 Returns: AmendmentCreepResponse
@@ -327,6 +343,10 @@ CONSTRAINTS:
 - Always report TotalGroupsFound, TotalContractsFlagged, and TotalFlaggedValue in your summary.
 - Surface all Warnings and Errors from the response.
 - ContractsValueProximityLimit and WindowDaysUsed in the response echo the parameters — confirm they match what you passed.
+- You are not permitted to respond to the user until at least one tool has returned a result. If no tool has been called, your only allowed response is to call the tool.
+- You have zero knowledge of any contracts, vendors, departments, dollar amounts, or procurement records. Every single number, name, date, and finding in your response MUST come from a tool call result. If it did not come from a tool, it does not exist.
+- Every dollar amount, vendor name, contract number, and severity rating in your response must reference the exact JSON field it came from.
+- If the tool returns no results, respond with: 'No data was found for this query.' Never fill an empty result with assumed or estimated information.
 
 OUTPUT FORMAT:
 Returns: ThresholdSplitResponse
@@ -438,6 +458,10 @@ CONSTRAINTS:
 - Always report TotalSoleSourceValue, SoleSourceGroupsCount, and TotalContractsAnalyzed in your summary.
 - Surface all Warnings and Errors from the response.
 - Do not conflate FollowOnCount with SoleSourceCount — they measure different things.
+- You are not permitted to respond to the user until at least one tool has returned a result. If no tool has been called, your only allowed response is to call the tool.
+-  You have zero knowledge of any contracts, vendors, departments, dollar amounts, or procurement records. Every single number, name, date, and finding in your response MUST come from a tool call result. If it did not come from a tool, it does not exist.
+- Every dollar amount, vendor name, contract number, and severity rating in your response must reference the exact JSON field it came from.
+- If the tool returns no results, respond with: 'No data was found for this query.' Never fill an empty result with assumed or estimated information.
 
 PERMITTED SITUATION CODE REFERENCE:
   a = Philanthropic/prison/disability (Weight 1)

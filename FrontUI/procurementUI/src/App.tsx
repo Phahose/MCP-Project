@@ -6,11 +6,7 @@ import { runAgent } from "./ai/orchestrator";
 import type { DisplayMessage } from "./ai/orchestrator";
 import ReactMarkdown from "react-markdown";
 
-type KPIProps = {
-  title: string;
-  value: string;
-  sub: string;
-};
+
 
 const MOCK_FINDING: Partial<Finding> = {
   AmendmentCreepResponse: [
@@ -112,15 +108,7 @@ const MOCK_FINDING: Partial<Finding> = {
   ]
 };
 
-function KPI({ title, value, sub }: KPIProps) {
-  return (
-    <div className="kpi">
-      <div className="kpi-title">{title}</div>
-      <div className="kpi-value">{value}</div>
-      <div className="kpi-sub">{sub}</div>
-    </div>
-  );
-}
+
 
 export default function App() {
   const [chatInput, setChatInput] = useState("");

@@ -65,9 +65,14 @@ async function callTool(name: string, args: any) {
         .then(result => {
           console.log("The result of calculate_threshold_split is:", result);
           currentFinding.type = "threshold_split";
+          console.log("RAW threshold split result type:", typeof result);
+          console.log("Is array?:", Array.isArray(result));
+          console.log("RAW sole source result:", JSON.stringify(result));
+
+          const resultArray = Array.isArray(result) ? result : result.thresholdSplitGroups ?? [];
           // Append to the list instead of replacing
           //... The 3 dots adds individual items to the list and not just add the new list to the findings
-          currentFinding.ThresholdSplitResponse = [ ...(currentFinding.ThresholdSplitResponse ?? []), ...result];
+          currentFinding.ThresholdSplitResponse = [ ...(currentFinding.ThresholdSplitResponse ?? []), ...resultArray];
           return result;
         });
 

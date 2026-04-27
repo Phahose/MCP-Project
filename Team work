@@ -1,0 +1,27 @@
+User Question
+     │
+     ▼
+  ROUTER LLM
+  (returns folder name)
+     │
+     ├── amendment_creep     ──┐
+     ├── threshold_splitting ──┤  each specialist runs
+     ├── sole_source_followon──┤  and returns JSON
+     ├── discovery           ──┤
+     └── search              ──┘
+                                │
+                         JSON COLLECTOR
+                         (aggregates all
+                          results into one
+                          JSON block)
+                                │
+                                ▼
+                    STORYTELLING NARRATOR
+                    (this prompt receives
+                     the full JSON block)
+                                │
+                                ▼
+                    Plain-English story
+                    for non-tech reader
+
+

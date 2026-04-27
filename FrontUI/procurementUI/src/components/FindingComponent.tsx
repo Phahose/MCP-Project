@@ -7,8 +7,7 @@ type Props = {
   type: "amendment_creep" | "threshold_split" | "sole_source";
 };
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD" }).format(value);
+const formatCurrency = (value: number) =>  new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD" }).format(value);
 
 function Factor({ label, value }: { label: string; value: number }) {
   return (

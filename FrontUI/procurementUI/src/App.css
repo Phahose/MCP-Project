@@ -241,11 +241,25 @@ body {
 /* SUMMARY ROW */
 .finding-summary {
   display: grid;
-  grid-template-columns: 100px 150px 1fr 80px;
+  grid-template-columns: 100px 160px 1fr auto auto;
   align-items: center;
   padding: 14px;
   cursor: pointer;
   list-style: none;
+  gap: 10px;
+}
+
+.finding-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.finding-meta .sub {
+  font-size: 11px;
+  color: #6b7280;
 }
 
 /* remove default arrow */
@@ -321,6 +335,7 @@ body {
   align-items: center;
   justify-content: center;
   color: white;
+  font-size: 0.7rem;
 }
 
 .score.high {
@@ -329,6 +344,7 @@ body {
 
 .score.medium {
   background: #d97706; 
+    font-size: 0.5rem;
 }
 
 .score.low {
@@ -401,7 +417,9 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
+
 }
+
 
 .panel {
   background: white;
@@ -500,4 +518,32 @@ body {
 .chat-message--loading {
   opacity: 0.5;
   font-style: italic;
+}
+
+.loading-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin: 32px auto;
+}
+
+.loading-bar-fill {
+  width: 300px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #4f6ef7, transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+  border-radius: 2px;
+}
+
+.loading-text {
+  font-size: 13px;
+  opacity: 0.5;
+  font-style: italic;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }

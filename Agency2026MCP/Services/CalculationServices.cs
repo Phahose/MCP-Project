@@ -16,6 +16,14 @@ namespace Agency2026MCP.Services
             {
                 AmendmentCreepResponse response = new AmendmentCreepResponse();
                 var original = group.FirstOrDefault(c => !c.IsAmendment);
+
+                foreach (var item in group)
+                {
+                    Console.WriteLine("-------- Group Memebers ------------------------------------------------------------");
+                    Console.WriteLine($"ID: {item.ContractNumber} Name: {item.VendorName} Start Date {item.StartDate}");
+                    Console.WriteLine("-------- End -----------------------------------------------------------------------");
+                }
+                
                
                 DateTime earlieststartDate = group.Where(c => c.StartDate.HasValue).Min(c => c.StartDate.Value);
                 DateTime latestStartDate = group.Where(c => c.StartDate.HasValue).Max(c => c.StartDate.Value);
@@ -211,16 +219,15 @@ namespace Agency2026MCP.Services
                     var orderedVendorContract = vendor.OrderBy(c => c.StartDate).ToList();
                     Contract basecontract = null;
 
-                    // Since data base is all sole source, we will use the first non-sole source contract as the base contract for comparison. In a more robust implementation, we might look for specific indicators or use NLP to determine the most likely base contract.
-                    foreach (var contract in orderedVendorContract)
-                    {
-                        //Find a base competitive contract (not sole source) that is followed by a sole source contract within the time window, and where the description of services is similar enough to suggest they are related.
-                        if (!IsSoleSource(contract))
-                        {
-                            basecontract = contract;
-                            break;
-                        }
+                    // Use the first contract chronologically as the base contract
+                    // Note: Since all records are sole source, we assume the earliest contract
+                    // is the original engagement and treat subsequent contracts as follow-on work
+                    basecontract = orderedVendorContract.First();
 
+                    // Need at least 2 contracts to detect follow-on pattern
+                    if (orderedVendorContract.Count < 2)
+                    {
+                        continue;
                     }
 
                     List<Contract> followoncontracts = new List<Contract>();

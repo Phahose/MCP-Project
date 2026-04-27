@@ -1,7 +1,6 @@
 import { useState } from "react";
 import "./App.css";
-import {ResultsTable} from "./components/ResultsTable";
-
+import { ResultsTable } from "./components/ResultsTable";
 import type { Finding } from "./types/Finding";
 import { runAgent } from "./ai/orchestrator";
 
@@ -11,59 +10,105 @@ type KPIProps = {
   sub: string;
 };
 
-
-const FINDINGS: Finding[] = [
-  {
-    id: "1",
-    severity: "high",
-    type: "amendment_creep",
-    subject: "Contract AB-2019-0847",
-    vendor: "Northern Aurora Systems Inc.",
-    ministry: "Health",
-    score: 91,
-    summary: "Original $180K competitive → current $4.2M through 14 non-competitive amendments",
-  },
-  {
-    id: "2",
-    severity: "high",
-    type: "sole_source",
-    subject: "Vendor: BorealTech Consulting",
-    vendor: "12 directed awards",
-    ministry: "Service Alberta",
-    score: 87,
-    summary: "Won $420K RFP in 2018; $8.9M in directed follow-on work since",
-  },
-  {
-    id: "3",
-    severity: "medium",
-    type: "threshold_split",
-    subject: "Cluster of 5 contracts",
-    vendor: "Chinook Digital Services Ltd.",
-    ministry: "Transportation",
-    score: 74,
-    summary: "5 contracts at $118K–$121K within 90 days; NWPTA threshold $121.2K",
-  },
-  {
-    id: "4",
-    severity: "medium",
-    type: "amendment_creep",
-    subject: "Contract AB-2021-1133",
-    vendor: "Rocky Mountain Analytics Ltd.",
-    ministry: "Environment & Parks",
-    score: 61,
-    summary: "$95K → $812K over 4 years, 7 amendments, 82% non-competed",
-  },
-  {
-    id: "5",
-    severity: "low",
-    type: "threshold_split",
-    subject: "Cluster of 3 contracts",
-    vendor: "Prairie Supply Co-op",
-    ministry: "Agriculture",
-    score: 48,
-    summary: "3 contracts near CFTA threshold; moderate description similarity (0.72)",
-  },
-];
+const MOCK_FINDING: Partial<Finding> = {
+  AmendmentCreepResponse: [
+    {
+      originalContractNumber: "AB-2019-0847",
+      originalVendorName: "Northern Aurora Systems Inc.",
+      originalContractValue: 180000,
+      finalContractValue: 4200000,
+      totalAmendmentCreep: 4020000,
+      totalAmendmentValue: 4020000,
+      creepRatio: 23.3,
+      totalAmendments: 14,
+      totalContractsAnalyzed: 15,
+      contractsWithCreep: [],
+      maxAmendmentValue: 800000,
+      maxAmendmentServices: "IT Systems Expansion",
+      warnings: [],
+      errors: [],
+      severity: "High",
+      department: "Health",
+      amendmentIntensity: 0.9,
+      costEscalation: 0.95,
+      contractdurationInDays: 1460,
+      originalContractServices: "IT Services",
+    },
+    {
+      originalContractNumber: "AB-2021-1133",
+      originalVendorName: "Rocky Mountain Analytics Ltd.",
+      originalContractValue: 95000,
+      finalContractValue: 812000,
+      totalAmendmentCreep: 717000,
+      totalAmendmentValue: 717000,
+      creepRatio: 7.5,
+      totalAmendments: 7,
+      totalContractsAnalyzed: 8,
+      contractsWithCreep: [],
+      maxAmendmentValue: 200000,
+      maxAmendmentServices: "Analytics Platform",
+      warnings: [],
+      errors: [],
+      severity: "Medium",
+      department: "Environment & Parks",
+      amendmentIntensity: 0.6,
+      costEscalation: 0.7,
+      contractdurationInDays: 1460,
+      originalContractServices: "Data Analytics",
+    }
+  ],
+  ThresholdSplitResponse: [
+    {
+      department: "Transportation",
+      contractCount: 5,
+      totalValue: 598000,
+      earliestStart: "2023-01-01",
+      latestStart: "2023-03-15",
+      spanDays: 73,
+      thresholdLimit: 121200,
+      combinedOverThreshold: 476800,
+      averageThresholdRatio: 0.98,
+      combinedRatioToThreshold: 4.9,
+      severity: "medium",
+      summary: "5 contracts at $118K–$121K within 90 days; NWPTA threshold $121.2K",
+      groupMembers: [],
+      vendorDependency: {
+        vendorName: "Chinook Digital Services Ltd.",
+        contractCount: 5,
+        totalValue: 598000,
+        dependencyRatio: 0.85
+      }
+    }
+  ],
+  SoleSourceResponse: [
+    {
+      department: "Service Alberta",
+      vendor: "BorealTech Consulting",
+      baseContract: {
+        contractNumber: "AB-2018-0421",
+        baseContractNumber: "AB-2018-0421",
+        isAmendment: false,
+        isSoleSource: true,
+        department: "Service Alberta",
+        departmentAddress: "",
+        vendorName: "BorealTech Consulting",
+        vendorAddress: "",
+        services: "IT Consulting",
+        value: 420000,
+        fiscalYear: "2018-2019"
+      },
+      timeSpanDays: 2190,
+      followOnContracts: [],
+      soleSourceContracts: [],
+      totalSoleSourceValue: 8900000,
+      followOnCount: 12,
+      soleSourceCount: 12,
+      severity: "high",
+      averageScore: 87,
+      summary: "Won $420K RFP in 2018; $8.9M in directed follow-on work since"
+    }
+  ]
+};
 
 function KPI({ title, value, sub }: KPIProps) {
   return (
@@ -74,56 +119,48 @@ function KPI({ title, value, sub }: KPIProps) {
     </div>
   );
 }
-    
 
 export default function App() {
+  const [chatInput, setChatInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentFinding, setCurrentFinding] = useState<Partial<Finding> | null>(null);
 
-const [chatInput, setChatInput] = useState("");
-const [isLoading, setIsLoading] = useState(false);
-
-
- const handleChatSend = async () => {
-  const input = chatInput.trim();
-    if (!input) return;
+  const handleChatSend = async () => {
+    const input = chatInput.trim();
+    if (!input || isLoading) return;
     setChatInput("");
     setIsLoading(true);
-    const response = await runAgent(input);
-    console.log("Final answer:", response);
-    setIsLoading(false);
+
+    try {
+      const { text, finding } = await runAgent(input);
+      console.log("Final answer:", text);
+      console.log("Finding:", finding);
+      if (finding) setCurrentFinding(finding);
+    } catch (error) {
+      console.error("Agent error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
   return (
     <div className="App">
-    {/* NAV */}
+      {/* NAV */}
       <div className="nav">
-          <div className="logo">
-            GoA · <span>Procurement Oversight</span>
-          </div>
-          <div className="nav-links">
-            <span className="active">Findings</span>
-            <span>Contracts</span>
-            <span>Vendors</span>
-            <span>Ministries</span>
-            <span>Thresholds</span>
-          </div>
-          <div className="nav-right">42,103 contracts · updated 2 hrs ago</div>
+        <div className="logo">GoA · <span>Procurement Oversight</span></div>
+        <div className="nav-links">
+          <span className="active">Findings</span>
+          <span>Contracts</span>
+          <span>Vendors</span>
+          <span>Ministries</span>
+          <span>Thresholds</span>
         </div>
-        <div className="container">
+        <div className="nav-right">42,103 contracts · updated 2 hrs ago</div>
+      </div>
 
-        
-        {/* KPI STRIP */}
-        {
-          FINDINGS.length >= 50 ? (<div className="kpis">
-            <KPI title="Contracts analyzed" value="42,103" sub="across 18 ministries" />
-            <KPI title="Total value under review" value="$2.81B" sub="2019–2026" />
-            <KPI title="Findings" value="847" sub="34 high · 210 med · 603 low" />
-            <KPI title="$ flagged high severity" value="$184M" sub="6.5% of total value" />
-          </div>)
-          : null
-        }
+      <div className="container">
         <div className="google-hero">
-          <h1 className="google-title">
-            Ask Anything!
-          </h1>
+          <h1 className="google-title">Ask Anything!</h1>
 
           <div className="google-input-wrapper">
             <input
@@ -132,13 +169,9 @@ const [isLoading, setIsLoading] = useState(false);
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  // Handle search submission
-                  handleChatSend();
-                  console.log("Search submitted:", chatInput);
-                  setChatInput("");
-                }
-              }}  
+                if (e.key === "Enter") handleChatSend();
+              }}
+              disabled={isLoading}
             />
           </div>
 
@@ -151,15 +184,20 @@ const [isLoading, setIsLoading] = useState(false);
             </ul>
           </div>
         </div>
-        {
-          FINDINGS.length >= 5 ? 
-            (<ResultsTable findings={FINDINGS} /> ) 
-            : 
-            null
-        }
-      
+
+        {/* LOADING INDICATOR */}
+        {isLoading && (
+          <div className="loading-bar">
+            <div className="loading-bar-fill" />
+            <span className="loading-text">Searching contracts...</span>
+          </div>
+        )}
+
+        {/* TABLE — mock data by default, real data when agent returns results */}
+        {!isLoading && (
+          <ResultsTable finding={currentFinding ?? MOCK_FINDING} />
+        )}
       </div>
     </div>
-    
   );
 }

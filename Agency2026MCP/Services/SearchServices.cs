@@ -23,8 +23,8 @@ namespace Agency2026MCP.Services
                 vendor                                                              AS VendorName,
                 contract_services                                                   AS Services,
                 amount                                                              AS Value,
-                start_date                                                          AS StartDate,
-                end_date                                                            AS EndDate,
+                start_date::timestamp                                               AS StartDate,
+                end_date::timestamp                                                 AS EndDate,
                 display_fiscal_year                                                 AS FiscalYear,
                 permitted_situations                                                AS PermittedSituation,
                 TRUE                                                                AS IsSoleSource
@@ -78,10 +78,10 @@ namespace Agency2026MCP.Services
                 limit = 50;
                 response.Warnings.Add($"Invalid limit {request.Limit}. Defaulted to 50.");
             }
-            else if (request.Limit > 500)
+            else if (request.Limit > 50)
             {
-                limit = 500;
-                response.Warnings.Add($"Limit {request.Limit} exceeded maximum of 500. Capped to 500.");
+                limit = 50;
+                response.Warnings.Add($"Limit {request.Limit} exceeded maximum of 50. Capped to 50.");
             }
             else
             {

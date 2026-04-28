@@ -31,11 +31,14 @@ async function callTool(name: string, args: any) {
         .then(result => {
           console.log("The result of search_contracts is:", result);
           lastSearchResults = result;
-          return { 
-            totalMatches: result.totalMatches,
-            returnedCount: result.returnedCount,
-            warnings: result.warnings
-          };
+          // return { 
+          //   totalMatches: result.totalMatches,
+          //   returnedCount: result.returnedCount,
+          //   warnings: result.warnings
+          // };
+          return{
+            lastSearchResults
+          }
         });
 
     case "calculate_amendment_creep":

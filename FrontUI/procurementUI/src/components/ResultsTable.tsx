@@ -6,7 +6,7 @@ import type { SoleSourceGroup } from "../types/SoleSourceGroup";
 import { FindingDetails } from "./FindingComponent";
 
 type Props = {
-  finding: Partial<Finding>;
+  finding: Partial<Finding> | null;
 };
 
 const getScoreClass = (severity: string) => {
@@ -111,61 +111,62 @@ function SoleSourceRow({ item }: { item: SoleSourceGroup }) {
 // ── Main Table ───────────────────────────────────────────────────────
 export function ResultsTable({ finding }: Props) {
   const [activeFilter, setActiveFilter] = useState("All types");
+  if(finding != null){
+    const hasAmendment = finding.AmendmentCreepResponse?.length ?? 0 > 0;
+    const hasThreshold = finding.ThresholdSplitResponse?.length ?? 0 > 0;
+    const hasSoleSource = finding.SoleSourceResponse?.length ?? 0 > 0;
 
-  const hasAmendment = finding.AmendmentCreepResponse?.length ?? 0 > 0;
-  const hasThreshold = finding.ThresholdSplitResponse?.length ?? 0 > 0;
-  const hasSoleSource = finding.SoleSourceResponse?.length ?? 0 > 0;
+    const filters = [
+      "All types",
+      ...(hasAmendment ? ["Amendment creep"] : []),
+      ...(hasThreshold ? ["Threshold split"] : []),
+      ...(hasSoleSource ? ["Sole source"] : []),
+    ];
 
-  const filters = [
-    "All types",
-    ...(hasAmendment ? ["Amendment creep"] : []),
-    ...(hasThreshold ? ["Threshold split"] : []),
-    ...(hasSoleSource ? ["Sole source"] : []),
-  ];
+    return (
+      <div className="body">
+        <div className="main">
+          {/* FILTERS */}
+          <div className="filters">
+            <input placeholder="Search findings, contracts, vendors…" />
+            {filters.map(filter => (
+              <button
+                key={filter}
+                className={activeFilter === filter ? "active" : ""}
+                onClick={() => setActiveFilter(filter)}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
 
-  return (
-    <div className="body">
-      <div className="main">
-        {/* FILTERS */}
-        <div className="filters">
-          <input placeholder="Search findings, contracts, vendors…" />
-          {filters.map(filter => (
-            <button
-              key={filter}
-              className={activeFilter === filter ? "active" : ""}
-              onClick={() => setActiveFilter(filter)}
-            >
-              {filter}
-            </button>
-          ))}
-        </div>
+          {/* FINDINGS LIST */}
+          <div className="findings-list">
 
-        {/* FINDINGS LIST */}
-        <div className="findings-list">
+            {/* Amendment Creep */}
+            {(activeFilter === "All types" || activeFilter === "Amendment creep") &&
+              finding.AmendmentCreepResponse?.map((item, i) => (
+                <AmendmentCreepRow key={i} item={item} />
+              ))
+            }
 
-          {/* Amendment Creep */}
-          {(activeFilter === "All types" || activeFilter === "Amendment creep") &&
-            finding.AmendmentCreepResponse?.map((item, i) => (
-              <AmendmentCreepRow key={i} item={item} />
-            ))
-          }
+            {/* Threshold Split */}
+            {(activeFilter === "All types" || activeFilter === "Threshold split") &&
+              finding.ThresholdSplitResponse?.map((item, i) => (
+                <ThresholdSplitRow key={i} item={item} />
+              ))
+            }
 
-          {/* Threshold Split */}
-          {(activeFilter === "All types" || activeFilter === "Threshold split") &&
-            finding.ThresholdSplitResponse?.map((item, i) => (
-              <ThresholdSplitRow key={i} item={item} />
-            ))
-          }
+            {/* Sole Source */}
+            {(activeFilter === "All types" || activeFilter === "Sole source") &&
+              finding.SoleSourceResponse?.map((item, i) => (
+                <SoleSourceRow key={i} item={item} />
+              ))
+            }
 
-          {/* Sole Source */}
-          {(activeFilter === "All types" || activeFilter === "Sole source") &&
-            finding.SoleSourceResponse?.map((item, i) => (
-              <SoleSourceRow key={i} item={item} />
-            ))
-          }
-
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }  
 }

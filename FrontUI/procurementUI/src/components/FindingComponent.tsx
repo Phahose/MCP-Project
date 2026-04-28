@@ -23,7 +23,7 @@ function Factor({ label, value }: { label: string; value: number }) {
   );
 }
 
-function Evidence({ title, desc }: { title: string; desc?: string }) {
+function Evidence({ title, desc }: { title: string; desc?: any }) {
   return (
     <div className="evidence-item">
       <div className="evidence-title">{title}</div>

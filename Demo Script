@@ -1,18 +1,1 @@
-Intro (20 sec)
 
-"Every year, governments award thousands of contracts worth billions of dollars. And hidden inside that data — quietly, legally — are patterns that should never have been allowed to grow. Contracts that ballooned beyond their original scope. Vendors splitting work to avoid oversight. Sole-source relationships that never returned to competition. Finding these patterns manually is slow, inconsistent, and often too late. That's why we built Argus."
-
-
-Prompt 1 — Amendment Creep + Threshold Splitting (40 sec)
-
-"Watch what happens when we ask Argus one single question about amendment creep and threshold splitting. In seconds — not weeks — Argus has scanned every contract, tracked every amendment, and calculated exactly how much each contract grew beyond its original awarded value. It then groups every vendor's contracts within rolling time windows and checks whether their combined spending crossed the competitive procurement threshold. Every finding is severity rated, every dollar amount is attached, and everything is completely traceable back to the source data. This is what used to take an auditor weeks of manual spreadsheet work. Argus does it instantly, consistently, and never misses a pattern. That is the power of procurement intelligence."
-
-
-Prompt 2 — All Three Together (40 sec)
-
-"Now imagine you're a deputy minister, an auditor, or an oversight body — and you need to know the full procurement health of an entire department right now. One question to Argus and it runs all three risk detectors simultaneously. Amendment creep, threshold splitting, sole-source lock-in — all analyzed at once. It scores every pattern, connects findings across vendors and departments, and hands you a complete risk story in plain English. Severity ratings, dollar amounts, justification scores — everything an auditor needs to act on, right there on the screen. No technical knowledge required. No team of analysts. No weeks of waiting. The risk was always hiding in the data — Argus just makes it impossible to ignore."
-
-
-Closing (20 sec)
-
-"Argus doesn't replace human judgment — it sharpens it. It gives procurement officers, auditors, and oversight bodies the intelligence they need to ask better questions, make faster decisions, and protect public money. Built on real government contracts data, powered by AI, and designed for people who don't have time to wait. This is Argus."

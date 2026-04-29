@@ -8,114 +8,13 @@ import ReactMarkdown from "react-markdown";
 
 
 
-// const MOCK_FINDING: Partial<Finding> = {
-//   AmendmentCreepResponse: [
-//     {
-//       originalContractNumber: "AB-2019-0847",
-//       originalVendorName: "Northern Aurora Systems Inc.",
-//       originalContractValue: 180000,
-//       finalContractValue: 4200000,
-//       totalAmendmentCreep: 4020000,
-//       totalAmendmentValue: 4020000,
-//       creepRatio: 23.3,
-//       totalAmendments: 14,
-//       totalContractsAnalyzed: 15,
-//       contractsWithCreep: [],
-//       maxAmendmentValue: 800000,
-//       maxAmendmentServices: "IT Systems Expansion",
-//       warnings: [],
-//       errors: [],
-//       severity: "High",
-//       department: "Health",
-//       amendmentIntensity: 0.9,
-//       costEscalation: 0.95,
-//       contractdurationInDays: 1460,
-//       originalContractServices: "IT Services",
-//     },
-//     {
-//       originalContractNumber: "AB-2021-1133",
-//       originalVendorName: "Rocky Mountain Analytics Ltd.",
-//       originalContractValue: 95000,
-//       finalContractValue: 812000,
-//       totalAmendmentCreep: 717000,
-//       totalAmendmentValue: 717000,
-//       creepRatio: 7.5,
-//       totalAmendments: 7,
-//       totalContractsAnalyzed: 8,
-//       contractsWithCreep: [],
-//       maxAmendmentValue: 200000,
-//       maxAmendmentServices: "Analytics Platform",
-//       warnings: [],
-//       errors: [],
-//       severity: "Medium",
-//       department: "Environment & Parks",
-//       amendmentIntensity: 0.6,
-//       costEscalation: 0.7,
-//       contractdurationInDays: 1460,
-//       originalContractServices: "Data Analytics",
-//     }
-//   ],
-//   ThresholdSplitResponse: [
-//     {
-//       department: "Transportation",
-//       contractCount: 5,
-//       totalValue: 598000,
-//       earliestStart: "2023-01-01",
-//       latestStart: "2023-03-15",
-//       spanDays: 73,
-//       thresholdLimit: 121200,
-//       combinedOverThreshold: 476800,
-//       averageThresholdRatio: 0.98,
-//       combinedRatioToThreshold: 4.9,
-//       severity: "medium",
-//       summary: "5 contracts at $118K–$121K within 90 days; NWPTA threshold $121.2K",
-//       groupMembers: [],
-//       vendorDependency: {
-//         vendorName: "Chinook Digital Services Ltd.",
-//         contractCount: 5,
-//         totalValue: 598000,
-//         dependencyRatio: 0.85
-//       }
-//     }
-//   ],
-//   SoleSourceResponse: [
-//     {
-//       department: "Service Alberta",
-//       vendor: "BorealTech Consulting",
-//       baseContract: {
-//         contractNumber: "AB-2018-0421",
-//         baseContractNumber: "AB-2018-0421",
-//         isAmendment: false,
-//         isSoleSource: true,
-//         department: "Service Alberta",
-//         departmentAddress: "",
-//         vendorName: "BorealTech Consulting",
-//         vendorAddress: "",
-//         services: "IT Consulting",
-//         value: 420000,
-//         fiscalYear: "2018-2019"
-//       },
-//       timeSpanDays: 2190,
-//       followOnContracts: [],
-//       soleSourceContracts: [],
-//       totalSoleSourceValue: 8900000,
-//       followOnCount: 12,
-//       soleSourceCount: 12,
-//       severity: "high",
-//       averageScore: 87,
-//       summary: "Won $420K RFP in 2018; $8.9M in directed follow-on work since"
-//     }
-//   ]
-// };
-
-
-
 export default function App() {
   const [chatInput, setChatInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [currentFinding, setCurrentFinding] = useState<Partial<Finding> | null>(null);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const [progressLog, setProgressLog] = useState<string[]>([]);
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
@@ -129,17 +28,23 @@ export default function App() {
     setIsLoading(true);
 
     try {
-      const { text, finding, messages: updatedMessages } = await runAgent(input);
-      console.log("Final answer:", text);
-      console.log("Finding:", finding);
-      setMessages(updatedMessages);
-      if (finding) setCurrentFinding(finding);
-    } catch (error) {
-      console.error("Agent error:", error);
-      setMessages(prev => [...prev, { role: "assistant", text: "Something went wrong. Please try again." }]);
-    } finally {
-      setIsLoading(false);
-    }
+    const { text, finding, messages: updatedMessages } = await runAgent(
+      input,
+      (update) => {
+        setProgressLog(prev => [...prev, update.message]); // append each step
+      }
+    );
+    console.log("Agent returned finding:", finding);
+    console.log("Agent returned messages:", updatedMessages);
+    console.log("Final Answer:", text);
+    setMessages(updatedMessages);
+    if (finding) setCurrentFinding(finding);
+  } catch (error) {
+    console.error("Agent error:", error);
+  } finally {
+    setIsLoading(false);
+    setProgressLog([]);
+  }
   };
 
   return (
@@ -149,10 +54,6 @@ export default function App() {
         <div className="logo">GoA · <span>Procurement Oversight</span></div>
         <div className="nav-links">
           <span className="active">Findings</span>
-          {/* <span>Contracts</span>
-          <span>Vendors</span>
-          <span>Ministries</span>
-          <span>Thresholds</span> */}
         </div>
         <div className="nav-right">Nicholas Ekwom, Shub Makwana, Jay Dayani</div>
       </div>
@@ -162,7 +63,7 @@ export default function App() {
         {/* HERO — only show when no messages yet */}
         {messages.length === 0 && (
           <div className="google-hero">
-            <h1 className="google-title">Ask Anything!</h1>
+            <h1 className="google-title">Argus Says Hi!</h1>
             <div className="google-input-wrapper">
               <input
                 className="google-input"
@@ -176,7 +77,7 @@ export default function App() {
               />
             </div>
             <div className="google-suggestions">
-              <p>Try asking:</p>
+              <p>You can ask Argus any question such as:</p>
               <ul>
                 <li onClick={() => setChatInput("Amendment creep in Health")} style={{ cursor: "pointer" }}>
                   Amendment creep in Health
@@ -193,12 +94,18 @@ export default function App() {
         )}
 
         {/* LOADING INDICATOR */}
-        {isLoading && messages.length === 0 && (
-          <div className="loading-bar">
-            <div className="loading-bar-fill" />
-            <span className="loading-text">Searching contracts...</span>
+        {isLoading && (
+        <div className="loading-bar">
+          <div className="loading-bar-fill" />
+          <div className="progress-log">
+            {progressLog.map((msg, i) => (
+              <div key={i} className={`progress-step ${i === progressLog.length - 1 ? "active" : "done"}`}>
+                {i === progressLog.length - 1 ? "⟳" : "✓"} {msg}
+              </div>
+            ))}
           </div>
-        )}
+        </div>
+      )}
 
         {/* MAIN CONTENT — results + chat side by side */}
         {messages.length > 0 && (

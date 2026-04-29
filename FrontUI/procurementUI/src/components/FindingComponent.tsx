@@ -99,6 +99,7 @@ export function FindingDetails({ item, type }: Props) {
                 <Evidence title="Services" desc={c.originalContractServices} />
                 <Evidence title="Max amendment" desc={formatCurrency(c.maxAmendmentValue)} />
                 <Evidence title="Max amendment services" desc={c.maxAmendmentServices} />
+                 <Evidence title="Contracts with creep" desc={c.contractsWithCreep.length} />
               </>
             );
           })()}

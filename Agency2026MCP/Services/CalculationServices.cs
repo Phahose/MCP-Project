@@ -10,6 +10,7 @@ namespace Agency2026MCP.Services
         {
             // Group contracts by base contract number
             var groupedContracts = searchContractResponse.Contracts.GroupBy(c => c.BaseContractNumber);
+          
             decimal totalCreep = 0;
             List<AmendmentCreepResponse> amendmentCreepResponses = new List<AmendmentCreepResponse>();
             foreach (var group in groupedContracts)
@@ -59,6 +60,8 @@ namespace Agency2026MCP.Services
                 response.FinalContractValue = response.TotalAmendmentValue + originalValue;
                 response.MaxAmendmentValue = maxAmendedValue;
                 response.MaxAmendmentServices = amendments.FirstOrDefault(a => a.Value == maxAmendedValue)?.Services;
+                response.TotalAmendments = amendments.Count();
+                response.Department = original.Department;
 
                 if (maxAmendedValue > originalValue)
                 {

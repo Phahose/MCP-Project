@@ -1,20 +1,23 @@
 import { callClaude } from "./aiClient";
 import { tools } from "./tools";
 import type { Finding } from "../types/Finding";
+// import { on } from "events";
 
 const API_BASE = "https://localhost:7064";
 let lastSearchResults: any = null;
 let currentFinding: Partial<Finding> = {};
 
-async function callTool(name: string, args: any) {
+async function callTool(name: string, args: any, onProgress?: (update: ProgressUpdate) => void) {
   switch (name) {
     case "list_departments":
+      onProgress?.({ tool: "list_departments", message: "Calling List Departments tool..." });
       return fetch(`${API_BASE}/list_departments`, {
         method: "GET",
         headers: { "Content-Type": "application/json" }
       }).then(res => res.json());
 
     case "list_vendors":
+      onProgress?.({ tool: "list_vendors", message: "Calling List Vendors tool..." });
       // console.log("Calling list_vendors with args:", args);
       return fetch(`${API_BASE}/list_vendors?vendorNameContains=${encodeURIComponent(args.vendorNameContains)}`, {
         method: "GET",
@@ -22,6 +25,7 @@ async function callTool(name: string, args: any) {
       }).then(res => res.json());
 
     case "search_contracts":
+      onProgress?.({ tool: "search_contracts", message: "Calling Search Contracts tool..." });
       console.log("Calling search_contracts with args:", args);
       return fetch(`${API_BASE}/search_contracts`, {
         method: "POST",
@@ -30,19 +34,15 @@ async function callTool(name: string, args: any) {
       }).then(res => res.json())
         .then(result => {
           console.log("The result of search_contracts is:", result);
+          onProgress?.({ tool: "search_contracts", message: `Found ${result.length} contracts matching criteria` });
           lastSearchResults = result;
-          // return { 
-          //   totalMatches: result.totalMatches,
-          //   returnedCount: result.returnedCount,
-          //   warnings: result.warnings
-          // };
           return{
             lastSearchResults
           }
         });
 
     case "calculate_amendment_creep":
-      console.log("Yoooooooooooooooooooooooo The last search result before calling calculate_amendment_creep is:", lastSearchResults);
+      onProgress?.({ tool: "calculate_amendment_creep", message: "Calling Calculate Amendment Creep tool..." });
       return fetch(`${API_BASE}/calculate_amendment_creep`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -50,6 +50,7 @@ async function callTool(name: string, args: any) {
       }).then(res => res.json())
         .then(result => {
           console.log("The result of calculate_amendment_creep is:", result);
+          onProgress?.({ tool: "calculate_amendment_creep", message: `Found ${result.length} contracts with potential amendment creep` });
           currentFinding.type = "amendment_creep";
           currentFinding.AmendmentCreepResponse = [
           ...(currentFinding.AmendmentCreepResponse ?? []),
@@ -59,7 +60,7 @@ async function callTool(name: string, args: any) {
         });
 
     case "calculate_threshold_split":
-      //console.log("Calling calculate_threshold_split with args:", lastSearchResults);
+      onProgress?.({ tool: "calculate_threshold_split", message: "Calling Calculate Threshold Split tool..." });
       return fetch(`${API_BASE}/calculate_threshold_split`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -68,11 +69,9 @@ async function callTool(name: string, args: any) {
         .then(result => {
           console.log("The result of calculate_threshold_split is:", result);
           currentFinding.type = "threshold_split";
-          console.log("RAW threshold split result type:", typeof result);
-          console.log("Is array?:", Array.isArray(result));
-          console.log("RAW sole source result:", JSON.stringify(result));
-
           const resultArray = Array.isArray(result) ? result : result.thresholdSplitGroups ?? [];
+          onProgress?.({ tool: "calculate_threshold_split", message: `Found ${resultArray.length} threshold split groups` });
+         
           // Append to the list instead of replacing
           //... The 3 dots adds individual items to the list and not just add the new list to the findings
           currentFinding.ThresholdSplitResponse = [ ...(currentFinding.ThresholdSplitResponse ?? []), ...resultArray];
@@ -80,6 +79,7 @@ async function callTool(name: string, args: any) {
         });
 
     case "calculate_sole_source_followon":
+      onProgress?.({ tool: "calculate_sole_source_followon", message: "Calling Calculate Sole Source Follow-on tool..." });
       console.log("Calling calculate_sole_source_followon with args:", args);
       return fetch(`${API_BASE}/calculate_sole_source_followon`, {
         method: "POST",
@@ -87,11 +87,9 @@ async function callTool(name: string, args: any) {
         body: JSON.stringify(lastSearchResults)
       }).then(res => res.json())
         .then(result => {
-          console.log("RAW sole source result type:", typeof result);
-          console.log("Is array?:", Array.isArray(result));
-          console.log("RAW sole source result:", JSON.stringify(result));
-
+          console.log("The result of calculate_sole_source_followon is:", result);
           const resultArray = Array.isArray(result) ? result : result.soleSourceGroups ?? [];
+          onProgress?.({ tool: "calculate_sole_source_followon", message: `Found ${resultArray.length} sole source groups` });
 
           currentFinding.type = "sole_source";
           currentFinding.SoleSourceResponse = [...(currentFinding.SoleSourceResponse ?? []),  ...resultArray];
@@ -109,6 +107,11 @@ export type AgentResult = {
   messages: DisplayMessage[];
 }
 
+export type ProgressUpdate = {
+  tool: string;
+  message: string;
+}
+
 let conversationHistory: any[] = []; 
 let displayMessages: DisplayMessage[] = []; 
 
@@ -117,7 +120,7 @@ export type DisplayMessage = {
   text: string;
 }
 
-export async function runAgent(userInput: string): Promise<AgentResult> {
+export async function runAgent(userInput: string, onProgress: (update: ProgressUpdate) => void): Promise<AgentResult> {
   // Add new user message to the existing history 
   conversationHistory.push({role: "user", content: userInput})
   displayMessages.push({
@@ -158,7 +161,7 @@ export async function runAgent(userInput: string): Promise<AgentResult> {
     const toolResults = await Promise.all(
       toolCalls.map(async (block: any) => {
         console.log("Calling tool:", block.name, block.input);
-        const result = await callTool(block.name, block.input);
+        const result = await callTool(block.name, block.input, onProgress);
         return {
           type: "tool_result",
           tool_use_id: block.id,
